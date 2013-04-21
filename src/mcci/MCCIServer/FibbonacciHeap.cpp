@@ -282,7 +282,7 @@ public:
         }
 
         /// Phase 2: merge roots with the same degree:
-        vector<PNode> degreeRoots (m_maxDegree+1); // make room for a new degree
+        vector<PNode> degreeRoots (m_maxDegree + 1); // make room for a new degree
         fill (degreeRoots.begin(), degreeRoots.end(), (PNode)NULL);
         m_maxDegree = 0;
         PNode currentPointer = m_rootWithMinKey->m_next;
