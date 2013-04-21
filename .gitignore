@@ -15,7 +15,7 @@
 # Cmake files
 *.cmake
 CMakeCache.txt
-CMakeFiles/*
+CMakeFiles
 Makefile
 cmake_install.cmake
 CTestTestfile.cmake
