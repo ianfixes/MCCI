@@ -1,4 +1,4 @@
-PROJECT(MCCI)
+PROJECT(MCCIServer)
  
 #what files are needed?
 SET(MCCI_SRCS
@@ -8,5 +8,4 @@ SET(MCCI_SRCS
 ADD_EXECUTABLE( MCCIServer ${MCCI_SRCS})
  
 # indicate how to link
-#TARGET_LINK_LIBRARIES(MCCIServer lua5.1)
-TARGET_LINK_LIBRARIES(MCCIServer lua)
+TARGET_LINK_LIBRARIES(MCCIServer lua5.1)
