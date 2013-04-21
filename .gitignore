@@ -17,3 +17,15 @@
 CMakeCache.txt
 CMakeFiles/*
 Makefile
+cmake_install.cmake
+CTestTestfile.cmake
+Testing
+DartConfiguration.tcl
+
+# build files
+bin/*
+build/*
+share/doc/*
+include/*
+lib/*
+
