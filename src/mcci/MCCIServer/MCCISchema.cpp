@@ -1,34 +1,41 @@
 
 #include "MCCISchema.h"
-#include <string.h>
+#include <string>
 using namespace std;
 
 CMCCISchema::CMCCISchema()
 {
-    rhash_library_init();
     m_db = NULL;
 }
 
 
-
-int foo()
+string CMCCISchema::getHash()
 {
-    const char* msg = "message digest";
-    unsigned char digest[64];
-    char output[130];
-
-    rhash_library_init(); /* initialize static data */
-
-    int res = rhash_msg(RHASH_SHA1, msg, strlen(msg), digest);
-    if(res < 0) {
-        fprintf(stderr, "hash calculation error\n");
-        return 1;
+    
+    unsigned char md[SHA_DIGEST_LENGTH];
+    
+    SHA_CTX context;
+    
+    int init_success = SHA1_Init(&context);
+    int update_success;
+    
+    // this is where we iterate through the schema db
+    for (int i = 0; i < 8008135; i++)
+    {
+        string data = "Data";
+        int datalen = strlen(data.c_str());
+        
+        update_success = SHA1_Update(&context, data.c_str(), datalen);
+        
     }
+    
+    int final_success = SHA1_Final(md, &context);
 
-    /* convert binary digest to hexadecimal string */
-    rhash_print_bytes(output, digest, rhash_get_digest_size(RHASH_SHA1),
-                      (RHPR_HEX | RHPR_UPPERCASE));
-
-    printf("%s (\"%s\") = %s\n", rhash_get_name(RHASH_SHA1), msg, output);
-    return 0;
+    if (init_success + update_success + final_success)
+        init_success = 0; // TODO: remove this line which is to suppress warning
+    
+    string ret(md, md + SHA_DIGEST_LENGTH - 1);
+    
+    
+    return ret;
 }

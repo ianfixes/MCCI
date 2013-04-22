@@ -4,7 +4,7 @@
 
 #include <string>
 #include <sqlite3.h>
-#include <rhash/rhash.h>
+#include <openssl/sha.h>
 //#include <unordered_map> // replace with boost?
 
 using namespace std;
