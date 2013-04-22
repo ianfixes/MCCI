@@ -3,6 +3,7 @@
 #define MCCI_SERVER_H_INCLUDED
 
 #include "FibbonacciHeap.cpp"
+#include "MCCISchema.h"
 #include <map>
 #include <sqlite3.h>
 //#include <unordered_map> // replace with boost?
@@ -10,11 +11,10 @@
 
 typedef struct
 {
-    bool hashRemoteRequests;
     int  maxLocalRequests;
     int  maxRemoteRequests;
-    
-    sqlite3* schema;
+
+    CMCCISchema* schema;
 
 } SMCCIServerSettings;
 
@@ -29,10 +29,28 @@ public:
 
 protected:
     SMCCIServerSettings m_settings;
-    int* m_indexOfVariable;  // convert variable_id to an index in our array
+
+    // local requests: 
+    // 
+    //       array        myhash       list
+    // reqs[variable_id][sequence_id][subscriber] = 
 
 
-    void buildSchema();
+
+    // remote requests
+    //
+    //
+    // reqs[host, variable_id][sequence_id][subscriber] = 
+
+    
+    // wildcard requests = subscriptions for duration of timeout
+    //
+    // host can be wildcard
+    // variable can be wildcard
+    // seq can be wildcard (i.e. latest)
+    //
+    // reqs
+
 
 };
 

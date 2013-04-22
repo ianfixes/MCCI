@@ -4,6 +4,8 @@ PROJECT(MCCIServer)
 SET(MCCIServer_SRCS
   MCCIServer.h
   MCCIServer.cpp
+  MCCISchema.h
+  MCCISchema.cpp
   MCCIServerMain.cpp
 )
 
