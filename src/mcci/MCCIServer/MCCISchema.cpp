@@ -23,7 +23,7 @@ string CMCCISchema::getHash()
     for (int i = 0; i < 8008135; i++)
     {
         string data = "Data";
-        int datalen = strlen(data.c_str());
+        int datalen = data.length();
         
         update_success = SHA1_Update(&context, data.c_str(), datalen);
         

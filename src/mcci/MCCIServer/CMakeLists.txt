@@ -14,4 +14,4 @@ ADD_EXECUTABLE( MCCIServer ${MCCIServer_SRCS})
  
 # indicate how to link
 # if rhash and dl don't come at the beginning, it will fail
-TARGET_LINK_LIBRARIES(MCCIServer lua5.1 sqlite3 openssl)
+TARGET_LINK_LIBRARIES(MCCIServer lua5.1 sqlite3 crypto)
