@@ -1,11 +1,15 @@
 PROJECT(MCCIServer)
  
 #what files are needed?
-SET(MCCI_SRCS
-    interaction.cpp
+SET(MCCIServer_SRCS
+  MCCIServer.h
+  MCCIServer.cpp
+  MCCIServerMain.cpp
 )
-# Add executable called myLua
-ADD_EXECUTABLE( MCCIServer ${MCCI_SRCS})
+
+# Add executable 
+ADD_EXECUTABLE( MCCIServer ${MCCIServer_SRCS})
  
 # indicate how to link
-TARGET_LINK_LIBRARIES(MCCIServer lua5.1)
+# if rhash and dl don't come at the beginning, it will fail
+TARGET_LINK_LIBRARIES(MCCIServer rhash dl lua5.1 sqlite3)
