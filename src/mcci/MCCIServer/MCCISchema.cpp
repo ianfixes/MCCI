@@ -3,9 +3,9 @@
 #include <string>
 using namespace std;
 
-CMCCISchema::CMCCISchema()
+void CMCCISchema::load(sqlite3* schema_db)
 {
-    m_db = NULL;
+    
 }
 
 

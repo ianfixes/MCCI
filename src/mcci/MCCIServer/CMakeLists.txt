@@ -2,6 +2,9 @@ PROJECT(MCCIServer)
  
 #what files are needed?
 SET(MCCIServer_SRCS
+  packets.h
+  MCCIRevisionSet.h
+  MCCIRevisionSet.cpp
   MCCIServer.h
   MCCIServer.cpp
   MCCISchema.h

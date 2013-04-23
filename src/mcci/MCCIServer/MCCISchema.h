@@ -13,12 +13,10 @@ class CMCCISchema
 {
 
 public:
-    CMCCISchema();
+    CMCCISchema(sqlite3* schema_db) { this->load(schema_db); };
     ~CMCCISchema();
 
-    // get access to a database
-    void load(sqlite3* schema_db) { m_db = schema_db; };
-    bool isLoaded() { return m_db != NULL; };
+    void load(sqlite3* schema_db);
 
     // get a hash that describes the working variable set
     string getHash();
