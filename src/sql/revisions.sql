@@ -14,3 +14,4 @@ drop table if exists signature;
 create table signature(
     text signature not null
 );
+
