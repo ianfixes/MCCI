@@ -1,9 +1,6 @@
+#pragma once
 
-#if !defined(MCCI_PACKETS_H_INCLUDED)
-#define MCCI_PACKETS_H_INCLUDED
-
-typedef unsigned int MCCI_TIME_T;
-
+#include "MCCITime.h"
 
 typedef struct
 {
@@ -47,14 +44,9 @@ typedef struct
 typedef struct
 {
     bool accepted;   /// FIXME, maybe convert to int error code
-    int  requests_remaining;
+    int  requests_remaining_local;
+    int  requests_remaining_remote;
 
 } SMCCIResponsePacket;
 
-    
-    
-    
 
-
-
-#endif // !defined(MCCI_PACKETS_H_INCLUDED)

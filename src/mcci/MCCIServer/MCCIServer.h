@@ -1,10 +1,9 @@
-
-#if !defined(MCCI_SERVER_H_INCLUDED)
-#define MCCI_SERVER_H_INCLUDED
+#pragma once
 
 #include "FibbonacciHeap.cpp"
 #include "MCCISchema.h"
 #include "MCCIRevisionSet.h"
+#include "MCCITime.h"
 #include "packets.h"
 #include <map>
 #include <vector>
@@ -32,6 +31,8 @@ class CMCCIServer
     
     vector<int> m_outstanding_requests_local;   // requests per subscriber
     vector<int> m_outstanding_requests_remote;  // requests per subscriber
+
+    vector<SMCCIDataPacket*> m_working_set; // current values of stuff
     
   public:
     CMCCIServer(SMCCIServerSettings settings);
@@ -49,13 +50,21 @@ class CMCCIServer
   protected:
     
     bool is_my_address(int address) { return 0 == address || address == m_settings.my_node_address; };
-
-    int forward_request(const SMCCIRequestPacket* request) { return 1; };
-    int subscribe_promiscuous(int client_id) { return 1; };
-    int subscribe_to_variable(int client_id, int variable_id) { return 1; };
-    int subscribe_to_host(int client_id, int node_address) { return 1; };
-    int subscribe_to_host_var(int client_id, int node_address, int variable_id) { return 1; };
-    int subscribe_specific(int client_id, int node_address, int variable_id, int revision) { return 1; };
+    bool is_rejectable_request(const SMCCIRequestPacket* input);
+    bool is_in_working_set(int variable_id) { return NULL != m_working_set[variable_id]; };
+    
+    int process_forwardable_request(int requestor_id, const SMCCIRequestPacket* input, SMCCIResponsePacket* response);
+    int forward_request(int requestor_id, const SMCCIRequestPacket* request) { return 1; };
+    int subscribe_promiscuous(int client_id, MCCI_TIME_T timeout) { return 1; };
+    int subscribe_to_variable(int client_id, MCCI_TIME_T timeout,
+                              int variable_id) { return 1; };
+    int subscribe_to_host(int client_id, MCCI_TIME_T timeout,
+                          int node_address) { return 1; };
+    int subscribe_to_host_var(int client_id, MCCI_TIME_T timeout,
+                              int node_address, int variable_id) { return 1; };
+    int subscribe_specific(int client_id, MCCI_TIME_T timeout, int variable_id, int revision) { return 1; };
+    int subscribe_specific_remote(int client_id, MCCI_TIME_T timeout,
+                                  int node_address, int variable_id, int revision) { return 1; };
     
     // local requests: 
     // 
@@ -82,4 +91,3 @@ class CMCCIServer
 };
 
 
-#endif // !defined(MCCI_SERVER_H_INCLUDED)

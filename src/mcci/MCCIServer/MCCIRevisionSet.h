@@ -1,6 +1,4 @@
-
-#if !defined(MCCI_REVISION_SET_H_INCLUDED)
-#define MCCI_REVISION_SET_H_INCLUDED
+#pragma once
 
 #include <string>
 #include <sqlite3.h>
@@ -45,6 +43,3 @@ class CMCCIRevisionSet
     void check_revision(int variable_id); // put a variable in the DB if it's not there
         
 };
-
-
-#endif // !defined(MCCI_REVISION_SET_H_INCLUDED)

@@ -1,6 +1,4 @@
-
-#if !defined(MCCI_SCHEMA_H_INCLUDED)
-#define MCCI_SCHEMA_H_INCLUDED
+#pragma once
 
 #include <string>
 #include <sqlite3.h>
@@ -30,6 +28,3 @@ class CMCCISchema
 
 
 };
-
-
-#endif // !defined(MCCI_SCHEMA_H_INCLUDED)

@@ -41,8 +41,6 @@ int main(int argc, char* argv[])
     CMCCISchema* schema = NULL;
     CMCCIRevisionSet* rs = NULL;
     
-    int result;
-
     if (!try_open_db("db.sqlite3", &schema_db, SQLITE_OPEN_READONLY))
     {
         cleanup();
@@ -57,14 +55,16 @@ int main(int argc, char* argv[])
     schema = new CMCCISchema(schema_db);
     rs     = new CMCCIRevisionSet(rs_db, "signature");
 
-    //fprintf(stderr, "\nNull signature is '%s'", rs->getSignature().c_str());
-    //rs->setSignature("Hello");
-    //fprintf(stderr, "\nNull signature is '%s'", rs->getSignature().c_str());
-            
+    // build settings struct
     SMCCIServerSettings settings;
+
     // these should be prime numbers because they become hash table sizes
     settings.max_local_requests = 101;
     settings.max_remote_requests = 199;
+
+    // assign other objects
+    settings.schema = schema;
+    settings.revisionset = rs;
 
     myServer = new CMCCIServer(settings);
     
