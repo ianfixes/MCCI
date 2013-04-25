@@ -28,21 +28,21 @@ class CMCCIRevisionSet
 
     void load(sqlite3* revision_db);
 
-    int getRevision(int variableID);  // return current value of revision
-    int incRevision(int variableID);  // increment revision and return value
+    int get_revision(int variable_id);  // return current value of revision
+    int inc_revision(int variable_id);  // increment revision and return value
 
     // TODO: warn if the array will be shrunk
-    void setMax(int variableMaxID) { m_cache.resize(variableMaxID, -1); };
+    void set_max(int variable_max_id) { m_cache.resize(variable_max_id, -1); };
 
     // the signature of the schema we're using
-    string getSignature();
-    void setSignature(string signature);
+    string get_signature();
+    void set_signature(string signature);
 
-    bool getStrict() { return m_strict; };    // whether to allow signature changes
-    void setStrict(bool v) { m_strict = v; };
+    bool get_strict() { return m_strict; };    // whether to allow signature changes
+    void set_strict(bool v) { m_strict = v; };
     
   protected:    
-    void checkRevision(int variableID); // put a variable in the DB if it's not there
+    void check_revision(int variable_id); // put a variable in the DB if it's not there
         
 };
 

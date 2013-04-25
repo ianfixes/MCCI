@@ -16,7 +16,7 @@ CMCCIRevisionSet::~CMCCIRevisionSet()
     sqlite3_finalize(m_update);
 }
 
-string CMCCIRevisionSet::getSignature()
+string CMCCIRevisionSet::get_signature()
 {
     sqlite3_stmt* s;
     int result;
@@ -46,9 +46,9 @@ string CMCCIRevisionSet::getSignature()
 }
 
 
-void CMCCIRevisionSet::setSignature(string signature)
+void CMCCIRevisionSet::set_signature(string signature)
 {
-    string currentsig = getSignature();
+    string currentsig = get_signature();
 
     if ("" == currentsig)
     {
@@ -80,7 +80,7 @@ void CMCCIRevisionSet::load(sqlite3* revision_db)
     sqlite3_prepare_v2(m_db, "update revision set revision=? where var_id=?", 64, &m_update, NULL);
 }
 
-void CMCCIRevisionSet::checkRevision(int variableID)
+void CMCCIRevisionSet::check_revision(int variableID)
 {
     if (-1 == m_cache[variableID])
     {
@@ -111,16 +111,16 @@ void CMCCIRevisionSet::checkRevision(int variableID)
     
 }
 
-int CMCCIRevisionSet::getRevision(int variableID)
+int CMCCIRevisionSet::get_revision(int variableID)
 {
-    checkRevision(variableID);
+    check_revision(variableID);
 
     return m_cache[variableID];
 }
 
-int CMCCIRevisionSet::incRevision(int variableID)
+int CMCCIRevisionSet::inc_revision(int variableID)
 {
-    checkRevision(variableID);
+    check_revision(variableID);
 
     ++(m_cache[variableID]);
 

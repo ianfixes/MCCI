@@ -14,9 +14,9 @@
 
 typedef struct
 {
-    int myNodeAddress;
-    int maxLocalRequests;
-    int maxRemoteRequests;
+    int my_node_address;
+    int max_local_requests;
+    int max_remote_requests;
 
     CMCCISchema* schema;
     CMCCIRevisionSet* revisionset;
@@ -30,32 +30,32 @@ class CMCCIServer
   protected:
     SMCCIServerSettings m_settings;
     
-    vector<int> m_outstandingRequestsLocal;   // requests per subscriber
-    vector<int> m_outstandingRequestsRemote;  // requests per subscriber
+    vector<int> m_outstanding_requests_local;   // requests per subscriber
+    vector<int> m_outstanding_requests_remote;  // requests per subscriber
     
   public:
     CMCCIServer(SMCCIServerSettings settings);
     ~CMCCIServer();
     
-    int processRequest(int requestorID, const SMCCIRequestPacket* input, SMCCIResponsePacket* response);
-    int processData(int providerID, const SMCCIDataPacket* input);
-    int processProduction(int providerID, const SMCCIProductionPacket* input, SMCCIAcceptancePacket* output);
+    int process_request(int requestor_id, const SMCCIRequestPacket* input, SMCCIResponsePacket* response);
+    int process_data(int provider_id, const SMCCIDataPacket* input);
+    int process_production(int provider_id, const SMCCIProductionPacket* input, SMCCIAcceptancePacket* output);
     
-    int clientFreeRequestsLocal(int clientID)  { return m_settings.maxLocalRequests - m_outstandingRequestsLocal[clientID]; }
-    int clientFreeRequestsRemote(int clientID) { return m_settings.maxRemoteRequests - m_outstandingRequestsRemote[clientID]; }
+    int client_free_requests_local(int client_id)  { return m_settings.max_local_requests - m_outstanding_requests_local[client_id]; }
+    int client_free_requests_remote(int client_id) { return m_settings.max_remote_requests - m_outstanding_requests_remote[client_id]; }
     
     
     
   protected:
     
-    bool isMyAddress(int address) { return 0 == address || address == m_settings.myNodeAddress; };
+    bool is_my_address(int address) { return 0 == address || address == m_settings.my_node_address; };
 
-    int forwardRequest(const SMCCIRequestPacket* request) { return 1; };
-    int subscribePromiscuous(int clientID) { return 1; };
-    int subscribeToVariable(int clientID, int variableID) { return 1; };
-    int subscribeToHost(int clientID, int nodeAddress) { return 1; };
-    int subscribeToHostVar(int clientID, int nodeAddress, int variableID) { return 1; };
-    int subscribeSpecific(int clientID, int nodeAddress, int variableID, int revision) { return 1; };
+    int forward_request(const SMCCIRequestPacket* request) { return 1; };
+    int subscribe_promiscuous(int client_id) { return 1; };
+    int subscribe_to_variable(int client_id, int variable_id) { return 1; };
+    int subscribe_to_host(int client_id, int node_address) { return 1; };
+    int subscribe_to_host_var(int client_id, int node_address, int variable_id) { return 1; };
+    int subscribe_specific(int client_id, int node_address, int variable_id, int revision) { return 1; };
     
     // local requests: 
     // 

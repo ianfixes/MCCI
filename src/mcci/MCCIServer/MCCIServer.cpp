@@ -12,109 +12,121 @@ CMCCIServer::CMCCIServer(SMCCIServerSettings settings)
 }
 
 
-int CMCCIServer::processRequest(int requestorID, const SMCCIRequestPacket* input, SMCCIResponsePacket* response)
+int CMCCIServer::process_request(int requestor_id, const SMCCIRequestPacket* input, SMCCIResponsePacket* response)
 {
     /*
       typedef struct
       {
       MCCI_TIME_T  Timeout;
       unsigned int NodeAddress;
-      unsigned int VariableID;
+      unsigned int variable_id;
       unsigned int Revision;
-      int          Quantity;
-      // direction is implied in the sign of Quantity
+      int          quantity;
+      // direction is implied in the sign of quantity
       
       } SMCCIRequestPacket;
     */
 
     // process rejections first -- even before timeouts -- so that bad packets always reject
-    if (0 < input->Revision)
+    if (0 < input->revision)
     {
         // reject requests that have a sequence number but not a variable 
-        if (0 == input->NodeAddress && 0 == input->VariableID)
+        if (0 == input->node_address && 0 == input->variable_id)
         {
-            response->Accepted = false;
-            response->RequestsRemaining = 0; // FIXME -- should be whatever it was before
+            response->accepted = false;
+            response->requests_remaining = 0; // FIXME -- should be whatever it was before
             return 1;
         }
         
         // reject requests that have a variable and seqence number but no host
-        if (11111 == input->NodeAddress && 0 < input->VariableID)
+        if (11111 == input->node_address && 0 < input->variable_id)
         {
-            response->Accepted = false;
-            response->RequestsRemaining = 0;
+            response->accepted = false;
+            response->requests_remaining = 0;
             return 1;
         }
     }
     
     unsigned int FIXME_TIME = 3; // actually look up system time
-    if (FIXME_TIME > input->Timeout)
+    if (FIXME_TIME > input->timeout)
     {
-        response->Accepted = true;
-        response->RequestsRemaining = FIXME_TIME; // whatever it was before, we silently drop this
+        response->accepted = true;
+        response->requests_remaining = FIXME_TIME; // whatever it was before, we silently drop this
         return 1;
     }
     
-    
-    if (11111 == input->NodeAddress)
+    // if subscribing to ALL nodes
+    if (11111 == input->node_address)
     {
-        if (0 == input->VariableID)
+        if (0 == input->variable_id)
         {
             // everything everything subscription (promiscuous)
-            this->subscribePromiscuous(requestorID);
+            this->subscribe_promiscuous(requestor_id);
         }
         else
         {
             // "1 variable on all nodes" subscription (discovery)
-            this->subscribeToVariable(requestorID, input->VariableID);
+            this->subscribe_to_variable(requestor_id, input->variable_id);
         }
     }
-    else
+    else // subscribing to one node that may be local or remote
     {
-        if (0 == input->VariableID && 0 == input->Revision)
+        if (0 == input->variable_id && 0 == input->revision)
         {
-            // host subscription
-            this->subscribeToHost(requestorID, input->NodeAddress);
+            // everything-from-one-host subscription
+            this->subscribe_to_host(requestor_id, input->node_address);
 
         }
         else
         {
-            //bool doForward = false;
+            bool do_forward = false;
 
+            if (0 == input->variable_id ) {}
+            
             /////// FIX EVERYTHIGN IN HERE
             
-            // everything here might be forwarded: host != -1 and variable_id != 0
-            if (0 == input->Revision && !this->isMyAddress(input->NodeAddress))
+            // if it's for another host, subscribe and we forward the request
+            if (0 == input->revision && !this->is_my_address(input->node_address))
             {
                 // host + variable subscription
-                this->subscribeToHostVar(requestorID, input->NodeAddress, input->VariableID);
+                this->subscribe_to_host_var(requestor_id, input->node_address, input->variable_id);
+                do_forward = true;
             }
             else
             {
+                int firstrev;
+                int lastrev;
+                int quantity;
+                int direction;
+
+                if (0 == input->revision) {}
                 
                 // expand subscription range and add to various queues
-                //int direction = (input->Quantity > 0) - (input->Quantity < 0);  // extracts sign
-                //int quantity  = input->Quantity * direction;  // cancels any negative sign
-                //for (int rev = input->Revision;
-                //this->subscribeSpecific(requestorID, input->NodeAddress, input->VariableID, rev);
+                direction = (input->quantity > 0) - (input->quantity < 0);  // extracts sign
+                quantity  = input->quantity * direction;  // cancels any negative sign
+                //for (int rev = input->revision;
+                //this->subscribeSpecific(requestor_id, input->node_address, input->variable_id, rev);
             }
-        }
+                
 
-        this->forwardRequest(input);
-
-    }
+            if (do_forward)
+            {
+                this->forward_request(input);
+            } // end if do_forward
+        } // end if no variable, no rev
+    } // end if all vs 1
 
 
     
     return 1;
 }
 
-int CMCCIServer::processData(int providerID, const SMCCIDataPacket* input)
+int CMCCIServer::process_data(int provider_id, const SMCCIDataPacket* input)
 {
     return 1;   
 }
 
-int CMCCIServer::processProduction(int providerID, const SMCCIProductionPacket* input, SMCCIAcceptancePacket* output)
+int CMCCIServer::process_production(int provider_id, const SMCCIProductionPacket* input, SMCCIAcceptancePacket* output)
 {
     return 1;
 }

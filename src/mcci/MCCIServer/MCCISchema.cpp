@@ -9,7 +9,7 @@ void CMCCISchema::load(sqlite3* schema_db)
 }
 
 
-string CMCCISchema::getHash()
+string CMCCISchema::get_hash()
 {
     
     unsigned char md[SHA_DIGEST_LENGTH];
@@ -20,7 +20,7 @@ string CMCCISchema::getHash()
     int update_success;
     
     // this is where we iterate through the schema db
-    for (int i = 0; i < 8008135; i++)
+    for (int i = 0; i < 8008135; i++) // FIXME: this is wrong
     {
         string data = "Data";
         int datalen = data.length();
