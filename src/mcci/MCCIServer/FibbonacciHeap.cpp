@@ -47,7 +47,7 @@ template <typename Data, typename Key> class FibonacciHeapNode
         m_previous = m_next = this; // doubly linked circular list
     } 
 	
-    bool isSingle() const
+    bool is_single() const
     {
         return (this == this->m_next);
     }
@@ -74,7 +74,7 @@ template <typename Data, typename Key> class FibonacciHeapNode
         this->m_next = this->m_previous = this;
     }
 	
-    void addChild(FibonacciHeapNode<Data,Key>* other) 
+    void add_child(FibonacciHeapNode<Data,Key>* other) 
     { // Fibonacci-Heap-Link(other,current)
         if (!m_child)
             m_child = other;
@@ -86,12 +86,12 @@ template <typename Data, typename Key> class FibonacciHeapNode
         //m_count += other->m_count;
     }
 
-    void removeChild(FibonacciHeapNode<Data,Key>* other) 
+    void remove_child(FibonacciHeapNode<Data,Key>* other) 
     {
         if (other->m_parent != this)
             throw string ("Trying to remove a child from a non-parent");
 
-        if (other->isSingle()) 
+        if (other->is_single()) 
         {
             if (m_child != other)
                 throw string ("Trying to remove a non-child");
@@ -115,7 +115,7 @@ template <typename Data, typename Key> class FibonacciHeapNode
         return (out << n.m_data << ":" << n.m_key);
     }
 	
-    void printTree(ostream& out) const 
+    void print_tree(ostream& out) const 
     {
         out << m_data << ":" << m_key << ":" << m_degree << ":" << m_mark;
         if (m_child) 
@@ -127,7 +127,7 @@ template <typename Data, typename Key> class FibonacciHeapNode
             {
                 if (n == this)
                     throw string("Illegal pointer - node is child of itself");
-                n->printTree(out); 
+                n->print_tree(out); 
                 out << " ";
                 n = n->m_next;
             } 
@@ -137,12 +137,12 @@ template <typename Data, typename Key> class FibonacciHeapNode
     }
 
 
-    void printAll(ostream& out) const 
+    void print_all(ostream& out) const 
     {
         const FibonacciHeapNode<Data,Key>* n = this;
         do 
         {
-            n->printTree(out); 
+            n->print_tree(out); 
             out << " ";
             n = n->m_next;
         } 
@@ -163,40 +163,40 @@ public:
 template <typename Data, typename Key> class FibonacciHeap 
 {
     typedef FibonacciHeapNode<Data,Key>* PNode;
-    PNode m_rootWithMinKey; // a circular d-list of nodes
+    PNode m_root_with_min_key; // a circular d-list of nodes
     uint m_count;      // total number of elements in heap
-    uint m_maxDegree;  // maximum degree (=child count) of a root in the  circular d-list
+    uint m_max_degree;  // maximum degree (=child count) of a root in the  circular d-list
     
 protected:
-    PNode insertNode(PNode newNode) 
+    PNode insert_node(PNode new_node) 
     {
-        //if (m_debug) cout << "insert " << (*newNode) << endl;
-        if (!m_rootWithMinKey) 
+        //if (m_debug) cout << "insert " << (*new_node) << endl;
+        if (!m_root_with_min_key) 
         { 
             // insert the first m_key to the heap:
-            m_rootWithMinKey = newNode;
+            m_root_with_min_key = new_node;
         } 
         else 
         {
-            m_rootWithMinKey->insert(newNode);  // insert the root of new tree to the list of roots
-            if (newNode->key() < m_rootWithMinKey->key())
-                m_rootWithMinKey = newNode;
+            m_root_with_min_key->insert(new_node);  // insert the root of new tree to the list of roots
+            if (new_node->key() < m_root_with_min_key->key())
+                m_root_with_min_key = new_node;
         }
-        return newNode;
+        return new_node;
     }
 
 public:
-    bool m_debug, m_debugRemoveMin, m_debugDecreaseKey;
+    bool m_debug, m_debug_remove_min, m_debug_decrease_key;
     
 
     FibonacciHeap()
     {
-        m_rootWithMinKey   = NULL;
-        m_count            = 0;
-        m_maxDegree        = 0;
-        m_debug            = false;
-        m_debugRemoveMin   = false;
-        m_debugDecreaseKey = false;
+        m_root_with_min_key  = NULL;
+        m_count              = 0;
+        m_max_degree         = 0;
+        m_debug              = false;
+        m_debug_remove_min   = false;
+        m_debug_decrease_key = false;
     }
     
     ~FibonacciHeap() { /* TODO: remove all nodes */ }
@@ -205,27 +205,27 @@ public:
 
     PNode minimum() const 
     { 
-        if (!m_rootWithMinKey)
+        if (!m_root_with_min_key)
             throw string("no minimum element");
-        return m_rootWithMinKey;
+        return m_root_with_min_key;
     }
 
-    void printRoots(ostream& out) const 
+    void print_roots(ostream& out) const 
     {
-        out << "m_maxDegree=" << m_maxDegree << "  m_count=" << m_count << "  roots=";
-        if (m_rootWithMinKey)
-            m_rootWithMinKey->printAll(out);
+        out << "m_max_degree=" << m_max_degree << "  m_count=" << m_count << "  roots=";
+        if (m_root_with_min_key)
+            m_root_with_min_key->print_all(out);
         else
             out << endl;
     }
 
-    void merge (const FibonacciHeap& other) 
+    void merge(const FibonacciHeap& other) 
     {  // Fibonacci-Heap-Union
-        m_rootWithMinKey->insert(other.m_rootWithMinKey);
-        if (!m_rootWithMinKey || 
-            (other.m_rootWithMinKey &&
-             other.m_rootWithMinKey->key() < m_rootWithMinKey->key()))
-            this->m_rootWithMinKey = other.m_rootWithMinKey;
+        m_root_with_min_key->insert(other.m_root_with_min_key);
+        if (!m_root_with_min_key || 
+            (other.m_root_with_min_key &&
+             other.m_root_with_min_key->key() < m_root_with_min_key->key()))
+            this->m_root_with_min_key = other.m_root_with_min_key;
         m_count += other.m_count;
     }
 	
@@ -234,149 +234,152 @@ public:
         if (m_debug) cout << "insert " << d << ":" << k << endl;
         m_count++;
         // create a new tree with a single m_key:
-        return insertNode(new FibonacciHeapNode<Data,Key>(d,k));
+        return insert_node(new FibonacciHeapNode<Data,Key>(d,k));
     }
 
 
-    void removeMinimum() 
+    void remove_minimum() 
     {  // Fibonacci-Heap-Extract-Min, CONSOLIDATE
-        if (!m_rootWithMinKey)
+        if (!m_root_with_min_key)
             throw string("trying to remove from an empty heap");
 
-        if (m_debug) cout << "removeMinimum" << endl;
+        if (m_debug) cout << "remove_minimum" << endl;
         m_count--;
 
         /// Phase 1: Make all the removed root's children new roots:
         // Make all children of root new roots:
-        if (m_rootWithMinKey->m_child) 
+        if (m_root_with_min_key->m_child) 
         {
-            if (m_debugRemoveMin) 
+            if (m_debug_remove_min) 
             {
                 cout << "  root's children: "; 
-                m_rootWithMinKey->m_child->printAll(cout);
+                m_root_with_min_key->m_child->print_all(cout);
             }
-            PNode c = m_rootWithMinKey->m_child;
-            do {
+            PNode c = m_root_with_min_key->m_child;
+            do
+            {
                 c->m_parent = NULL;
                 c = c->m_next;
-            } while (c != m_rootWithMinKey->m_child);
-            m_rootWithMinKey->m_child = NULL; // removed all children
-            m_rootWithMinKey->insert(c);
+            }
+            while (c != m_root_with_min_key->m_child);
+            
+            m_root_with_min_key->m_child = NULL; // removed all children
+            m_root_with_min_key->insert(c);
         }
 
-        if (m_debugRemoveMin) 
+        if (m_debug_remove_min) 
         {
             cout << "  roots after inserting children: "; 
-            printRoots(cout);
+            print_roots(cout);
         }
 		
 
         /// Phase 2-a: handle the case where we delete the last m_key:
-        if (m_rootWithMinKey->m_next == m_rootWithMinKey) 
+        if (m_root_with_min_key->m_next == m_root_with_min_key) 
         {
-            if (m_debugRemoveMin) cout << "  removed the last" << endl;
+            if (m_debug_remove_min) cout << "  removed the last" << endl;
             if (m_count != 0)
                 throw string ("Internal error: should have 0 keys");
-            m_rootWithMinKey = NULL;
+            m_root_with_min_key = NULL;
             return;
         }
 
         /// Phase 2: merge roots with the same degree:
-        vector<PNode> degreeRoots (m_maxDegree + 1); // make room for a new degree
-        fill (degreeRoots.begin(), degreeRoots.end(), (PNode)NULL);
-        m_maxDegree = 0;
-        PNode currentPointer = m_rootWithMinKey->m_next;
-        uint currentDegree;
+        vector<PNode> degree_roots (m_max_degree + 1); // make room for a new degree
+        fill (degree_roots.begin(), degree_roots.end(), (PNode)NULL);
+        m_max_degree = 0;
+        PNode current_pointer = m_root_with_min_key->m_next;
+        uint current_degree;
         do 
         {
-            currentDegree = currentPointer->m_degree;
-            if (m_debugRemoveMin) 
+            current_degree = current_pointer->m_degree;
+            if (m_debug_remove_min) 
             {
-                cout << "  roots starting from currentPointer: "; 
-                currentPointer->printAll(cout);
+                cout << "  roots starting from current_pointer: "; 
+                current_pointer->print_all(cout);
                 cout << "  checking root " 
-                     << *currentPointer 
+                     << *current_pointer 
                      << " with degree " 
-                     << currentDegree << endl;
+                     << current_degree << endl;
             }
 
-            PNode current = currentPointer;
-            currentPointer = currentPointer->m_next;
-            while (degreeRoots[currentDegree]) 
+            PNode current = current_pointer;
+            current_pointer = current_pointer->m_next;
+            while (degree_roots[current_degree]) 
             { // merge the two roots with the same degree:
-                PNode other = degreeRoots[currentDegree]; // another root with the same degree
+                PNode other = degree_roots[current_degree]; // another root with the same degree
                 if (current->key() > other->key())
                     swap(other,current); 
                 // now current->key() <= other->key() - make other a child of current:
                 other->remove(); // remove from list of roots
-                current->addChild(other);
-                if (m_debugRemoveMin) cout << "  added " << *other << " as child of " << *current << endl;
-                degreeRoots[currentDegree]=NULL;
-                currentDegree++;
-                if (currentDegree >= degreeRoots.size())
-                    degreeRoots.push_back((PNode)NULL);
+                current->add_child(other);
+                if (m_debug_remove_min) cout << "  added " << *other << " as child of " << *current << endl;
+                degree_roots[current_degree] = NULL;
+                current_degree++;
+                if (current_degree >= degree_roots.size())
+                    degree_roots.push_back((PNode)NULL);
             }
             // keep the current root as the first of its degree in the degrees array:
-            degreeRoots[currentDegree] = current;
+            degree_roots[current_degree] = current;
 
         } 
-        while (currentPointer != m_rootWithMinKey);
+        while (current_pointer != m_root_with_min_key);
 
-        /// Phase 3: remove the current root, and calcualte the new m_rootWithMinKey:
-        delete m_rootWithMinKey;
-        m_rootWithMinKey = NULL;
+        /// Phase 3: remove the current root, and calcualte the new m_root_with_min_key:
+        delete m_root_with_min_key;
+        m_root_with_min_key = NULL;
 
-        uint newMaxDegree=0;
-        for (uint d=0; d<degreeRoots.size(); ++d) 
+        uint new_max_degree = 0;
+        for (uint d = 0; d < degree_roots.size(); ++d) 
         {
-            if (m_debugRemoveMin) cout << "  degree " << d << ": ";
-            if (degreeRoots[d]) 
+            if (m_debug_remove_min) cout << "  degree " << d << ": ";
+            if (degree_roots[d]) 
             {
-                if (m_debugRemoveMin) cout << " " << *degreeRoots[d] << endl;
-                degreeRoots[d]->m_next = degreeRoots[d]->m_previous = degreeRoots[d];
-                insertNode(degreeRoots[d]);
-                if (d>newMaxDegree)
-                    newMaxDegree = d;		
+                if (m_debug_remove_min) cout << " " << *degree_roots[d] << endl;
+                degree_roots[d]->m_next = degree_roots[d]->m_previous = degree_roots[d];
+                insert_node(degree_roots[d]);
+                if (d>new_max_degree)
+                    new_max_degree = d;		
             } 
             else 
             {
-                if (m_debugRemoveMin) cout << "  no node" << endl;
+                if (m_debug_remove_min) cout << "  no node" << endl;
             }
         }
-        m_maxDegree = newMaxDegree;
+        m_max_degree = new_max_degree;
     }
 	
-    void decreaseKey(PNode node, Key newKey) 
+    void decrease_key(PNode node, Key new_key) 
     {
-        if (newKey >= node->m_key)
+        if (new_key >= node->m_key)
             throw string("Trying to decrease key to a greater key");
 
-        if (m_debug) cout << "decrease key of " << *node << " to " << newKey << endl;
+        if (m_debug) cout << "decrease key of " << *node << " to " << new_key << endl;
         // Update the key and possibly the min key:
-        node->m_key = newKey;
+        node->m_key = new_key;
 
         // Check if the new key violates the heap invariant:
         PNode parent = node->m_parent;
         if (!parent) 
         { // root node - just make sure the minimum is correct
-            if (newKey < m_rootWithMinKey->key())
-                m_rootWithMinKey = node;
+            if (new_key < m_root_with_min_key->key())
+                m_root_with_min_key = node;
             return; // heap invariant not violated - nothing more to do
         } 
-        else if (parent->key() <= newKey) 
+        else if (parent->key() <= new_key) 
         {
             return; // heap invariant not violated - nothing more to do
         }
 
         for(;;) 
         {
-            parent->removeChild(node);
-            insertNode(node);
-            if (m_debugDecreaseKey) 
+            parent->remove_child(node);
+            insert_node(node);
+            if (m_debug_decrease_key) 
             {
                 cout << "  removed " << *node << " as child of " << *parent << endl;
                 cout << "  roots after remove: "; 
-                m_rootWithMinKey->printAll(cout);
+                m_root_with_min_key->print_all(cout);
             }
 
             if (!parent->m_parent) 
@@ -397,12 +400,12 @@ public:
         };
     }
 
-    void remove(PNode node, Key minusInfinity) 
+    void remove(PNode node, Key minus_infinity) 
     {
-        if (minusInfinity >= minimum()->key())
+        if (minus_infinity >= minimum()->key())
             throw string("2nd argument to remove must be a key that is smaller than all other keys");
-        decreaseKey(node, minusInfinity);
-        removeMinimum();
+        decrease_key(node, minus_infinity);
+        remove_minimum();
     }
 
 };  // FibonacciHeap

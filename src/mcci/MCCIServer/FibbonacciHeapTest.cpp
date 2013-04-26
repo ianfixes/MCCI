@@ -4,9 +4,9 @@
 int main() {
     try {
         FibonacciHeap<string, uint> h;
-        h.m_debug            = true;
-        h.m_debugRemoveMin   = false;
-        h.m_debugDecreaseKey = false;
+        h.m_debug              = true;
+        h.m_debug_remove_min   = false;
+        h.m_debug_decrease_key = false;
         
         h.insert("a",4);
         h.insert("b",2);
@@ -14,13 +14,13 @@ int main() {
         h.insert("d",5);
         h.insert("e",1);
         h.insert("f",8);
-        h.printRoots(cout);
+        h.print_roots(cout);
         
         while (!h.empty()) 
         {
             cout << "min=" << *h.minimum() << endl;
-            h.removeMinimum(); 
-            h.printRoots(cout);
+            h.remove_minimum(); 
+            h.print_roots(cout);
         }
         
         cout << endl << endl;
@@ -38,13 +38,13 @@ int main() {
             h.insert("e",10);
         nodes[5] = 
             h.insert("f",80);
-        h.printRoots(cout);
+        h.print_roots(cout);
         cout << "min=" << *h.minimum() << endl;
         
-        h.removeMinimum(); 
+        h.remove_minimum(); 
         cout << "min=" << *h.minimum() << endl;
         nodes[4]=NULL;
-        h.printRoots(cout);
+        h.print_roots(cout);
         
         for (uint i = 0; i < nodes.size(); ++i) 
         {
@@ -52,7 +52,7 @@ int main() {
                 continue;
             h.decreaseKey(nodes[i], nodes[i]->key()/10);
             cout << "min=" << *h.minimum() << endl;
-            h.printRoots(cout);
+            h.print_roots(cout);
         }
         
         cout << endl << endl;
@@ -63,13 +63,13 @@ int main() {
         h.insert("DD",5);
         h.insert("EE",1);
         h.insert("FF",8);
-        h.printRoots(cout);
+        h.print_roots(cout);
         
         while (!h.empty()) 
         {
             cout << "min=" << *h.minimum() << endl;
-            h.removeMinimum(); 
-            h.printRoots(cout);
+            h.remove_minimum(); 
+            h.print_roots(cout);
         }
         
         cout << endl << endl;
