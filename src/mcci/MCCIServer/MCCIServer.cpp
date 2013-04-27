@@ -21,8 +21,8 @@ bool CMCCIServer::is_rejectable_request(const SMCCIRequestPacket* input)
 
 int CMCCIServer::process_request(int requestor_id, const SMCCIRequestPacket* input, SMCCIResponsePacket* response)
 {
-    response->requests_remaining_local  = 100; //FIXME: get current value
-    response->requests_remaining_remote = 100; //FIXME: get current value
+    response->requests_remaining_local  = client_free_requests_local(requestor_id);
+    response->requests_remaining_remote = client_free_requests_remote(requestor_id);
     
     // process rejections first -- even before timeouts -- so that bad packets always reject
     if (is_rejectable_request(input))
@@ -41,7 +41,7 @@ int CMCCIServer::process_request(int requestor_id, const SMCCIRequestPacket* inp
     // if subscribing to ALL nodes
     if (11111 == input->node_address) 
     {
-        if (!client_free_requests_remote(requestor_id)) return 1; // basically just drop silently
+        if (!response->requests_remaining_remote) return 1; // basically just drop silently
         
         if (0 == input->variable_id)
         {
@@ -53,14 +53,16 @@ int CMCCIServer::process_request(int requestor_id, const SMCCIRequestPacket* inp
             // "1 variable on all nodes" (discovery)
             subscribe_to_variable(requestor_id, input->timeout, input->variable_id); 
         }
-        response->requests_remaining_remote -= 1;
+
+        ++m_outstanding_requests_remote[requestor_id];
+        response->requests_remaining_remote = client_free_requests_remote(requestor_id);
         return 1;
     }
     
     // subscribing to one node that may be local or remote
     if (0 == input->variable_id && 0 == input->revision)
     {
-        if (!client_free_requests_remote(requestor_id)) return 1; // silently drop request
+        if (!response->requests_remaining_remote) return 1; // silently drop request
         
         subscribe_to_host(requestor_id, input->timeout, input->node_address);
         response->requests_remaining_remote -= 1;
@@ -82,7 +84,7 @@ int CMCCIServer::process_forwardable_request(int requestor_id, const SMCCIReques
     
     if (!is_for_me && 0 == input->revision)
     {
-        if (!client_free_requests_remote(requestor_id)) return 1; //silently drop
+        if (!response->requests_remaining_remote) return 1; //silently drop
         
         subscribe_to_host_var(requestor_id, input->timeout, input->node_address, input->variable_id);
         forward_request(requestor_id, input);
@@ -93,19 +95,12 @@ int CMCCIServer::process_forwardable_request(int requestor_id, const SMCCIReques
     int direction = (input->quantity > 0) - (input->quantity < 0);  // extracts sign
     int quantity  = input->quantity * direction;  // cancels any negative sign
     int limit;
-    int fr;
 
-    // calculate limit -- max quantity allowed
+    // calculate limit -- max quantity allowed.  basically same calculation using 
     if (is_for_me)
-    {
-        fr = client_free_requests_local(requestor_id);
-        limit = fr >= quantity ? quantity : fr;
-    }
+        limit = response->requests_remaining_local >= quantity ? quantity : response->requests_remaining_local;
     else
-    {
-        fr = client_free_requests_remote(requestor_id);
-        limit = fr >= quantity ? quantity : fr;
-    }
+        limit = response->requests_remaining_local >= quantity ? quantity : response->requests_remaining_remote;
 
     // figure out where to start counting (observing desired range and order, constrained by limits)
     if (0 < input->revision)

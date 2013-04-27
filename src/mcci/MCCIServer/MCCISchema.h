@@ -8,6 +8,12 @@
 
 using namespace std;
 
+/**
+   This class provides the working set of variables and their types.  It loads a schema from an sqlite3 database
+   and keeps track of the ordinal numbers of each variable ID.
+
+   A hashing function is also provided, to ensure runtime compatibility of server and clients.
+ */
 class CMCCISchema
 {
 
@@ -22,7 +28,7 @@ class CMCCISchema
 
   protected:
     
-    vector<int> m_index_of_variable;  // convert variable_id to an index in our array
+    vector<unsigned int> m_index_of_variable;  // convert variable_id to an index in our array
 
     sqlite3* m_db;
 
