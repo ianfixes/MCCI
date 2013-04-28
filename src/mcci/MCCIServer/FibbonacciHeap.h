@@ -7,7 +7,6 @@
  * @date 2010-11-11
  */
 
-#include "FibbonacciHeap.h"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -29,128 +28,31 @@ template <typename Data, typename Key> class FibonacciHeapNode
     //uint m_count; // total number of elements in tree, including this. For debug only
     
     
-    FibonacciHeapNode<Data,Key>* m_previous;  // pointers in a circular doubly linked list
-    FibonacciHeapNode<Data,Key>* m_next;
-    FibonacciHeapNode<Data,Key>* m_child; // pointer to the first child in the list of children
-    FibonacciHeapNode<Data,Key>* m_parent;
+    FibonacciHeapNode<Data, Key>* m_previous;  // pointers in a circular doubly linked list
+    FibonacciHeapNode<Data, Key>* m_next;
+    FibonacciHeapNode<Data, Key>* m_child; // pointer to the first child in the list of children
+    FibonacciHeapNode<Data, Key>* m_parent;
     
     FibonacciHeapNode() {};
     
-    FibonacciHeapNode(Data d, Key k)
-    {
-        
-        m_key      = k;
-        m_data     = d;
-        m_degree   = 0;
-        m_mark     = false;
-        m_child    = NULL;
-        m_parent   = NULL;
-        m_previous = m_next = this; // doubly linked circular list
-    } 
+    FibonacciHeapNode(Data d, Key k);
 	
-    bool is_single() const
-    {
-        return (this == this->m_next);
-    }
+    // whether this is the only node in the ring
+    bool is_single() const;
         
     // inserts a new node after this node
-    void insert(FibonacciHeapNode<Data,Key>* other) 
-    {
-        if (!other) return;
-            
-        // For example: given 1->2->3->4->1, insert a->b->c->d->a after node 3:
-        //	result: 1->2->3->a->b->c->d->4->1
-            
-        this->m_next->m_previous = other->m_previous;
-        other->m_previous->m_next = this->m_next;
-            
-        this->m_next = other;
-        other->m_previous = this;
-    }
-        
-    void remove() 
-    {
-        this->m_previous->m_next = this->m_next;
-        this->m_next->m_previous = this->m_previous;
-        this->m_next = this->m_previous = this;
-    }
-	
-    void add_child(FibonacciHeapNode<Data,Key>* other) 
-    { // Fibonacci-Heap-Link(other,current)
-        if (!m_child)
-            m_child = other;
-        else
-            m_child->insert(other);
-        other->m_parent = this;
-        other->m_mark = false;
-        m_degree++;
-        //m_count += other->m_count;
-    }
+    void insert(FibonacciHeapNode<Data, Key>* other);
 
-    void remove_child(FibonacciHeapNode<Data,Key>* other) 
-    {
-        if (other->m_parent != this)
-            throw string ("Trying to remove a child from a non-parent");
+    // remove a node from the ring
+    void remove();
 
-        if (other->is_single()) 
-        {
-            if (m_child != other)
-                throw string ("Trying to remove a non-child");
-            m_child = NULL;
-        } 
-        else 
-        {
-            if (m_child == other)
-                m_child = other->m_next;
-            other->remove(); // from list of children
-        }
-        other->m_parent = NULL;
-        other->m_mark = false;
-        m_degree--;
-        //m_count -= other->m_count;
-    }
+    void add_child(FibonacciHeapNode<Data, Key>* other);
+    void remove_child(FibonacciHeapNode<Data, Key>* other);
 
-	
-    friend ostream& operator<< (ostream& out, const FibonacciHeapNode& n) 
-    {
-        return (out << n.m_data << ":" << n.m_key);
-    }
-	
-    void print_tree(ostream& out) const 
-    {
-        out << m_data << ":" << m_key << ":" << m_degree << ":" << m_mark;
-        if (m_child) 
-        {
-            out << "(";
-            const FibonacciHeapNode<Data,Key>* n = m_child;
-
-            do 
-            {
-                if (n == this)
-                    throw string("Illegal pointer - node is child of itself");
-                n->print_tree(out); 
-                out << " ";
-                n = n->m_next;
-            } 
-            while (n != m_child);
-            out << ")";
-        }
-    }
-
-
-    void print_all(ostream& out) const 
-    {
-        const FibonacciHeapNode<Data,Key>* n = this;
-        do 
-        {
-            n->print_tree(out); 
-            out << " ";
-            n = n->m_next;
-        } 
-        while (n != this);
-
-        out << endl;
-    }
+    
+    friend ostream& operator<< (ostream& out, const FibonacciHeapNode<Data, Key>& n);
+    void print_tree(ostream& out) const;
+    void print_all(ostream& out) const;
 	
 public:
     Key key() const { return m_key; }
@@ -163,7 +65,7 @@ public:
 
 template <typename Data, typename Key> class FibonacciHeap 
 {
-    typedef FibonacciHeapNode<Data,Key>* PNode;
+    typedef FibonacciHeapNode<Data, Key>* PNode;
     PNode m_root_with_min_key; // a circular d-list of nodes
     uint m_count;      // total number of elements in heap
     uint m_max_degree;  // maximum degree (=child count) of a root in the  circular d-list
@@ -235,7 +137,7 @@ public:
         if (m_debug) cout << "insert " << d << ":" << k << endl;
         m_count++;
         // create a new tree with a single m_key:
-        return insert_node(new FibonacciHeapNode<Data,Key>(d,k));
+        return insert_node(new FibonacciHeapNode<Data, Key>(d,k));
     }
 
 
