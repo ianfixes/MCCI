@@ -3,6 +3,7 @@ PROJECT(MCCIServer)
 #what files are needed?
 SET(MCCIServer_SRCS
   packets.h
+  FibonacciHeap.h
   MCCITime.h
   MCCITime.cpp
   MCCIRevisionSet.h
@@ -12,8 +13,6 @@ SET(MCCIServer_SRCS
   MCCISchema.h
   MCCISchema.cpp
   MCCIServerMain.cpp
-  FibonacciHeap.cpp
-  FibonacciHeap.h
 )
 
 # Add executable 
