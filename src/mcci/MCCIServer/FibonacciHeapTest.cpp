@@ -1,6 +1,20 @@
 
 #include "FibonacciHeap.h"
 
+#include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+
+void print_min(FibonacciHeap<string, uint>* h)
+{
+        cout << "min=";
+        h->minimum()->print_node(cout);
+        cout << endl;
+}
+
 void doTest()
 {
     FibonacciHeap<string, uint> h;
@@ -18,14 +32,14 @@ void doTest()
         
     while (!h.empty()) 
     {
-        cout << "min=" << *h.minimum() << endl;
+        print_min(&h);
         h.remove_minimum(); 
         h.print_roots(cout);
     }
         
     cout << endl << endl;
         
-    vector <FibonacciHeapNode<string,uint>*> nodes(6);
+    vector <FibonacciHeapNode<string, uint>*> nodes(6);
     nodes[0] = 
         h.insert("a",400);
     nodes[1] = 
@@ -39,10 +53,10 @@ void doTest()
     nodes[5] = 
         h.insert("f",80);
     h.print_roots(cout);
-    cout << "min=" << *h.minimum() << endl;
+    print_min(&h);
         
-    h.remove_minimum(); 
-    cout << "min=" << *h.minimum() << endl;
+    h.remove_minimum();
+    print_min(&h);
     nodes[4]=NULL;
     h.print_roots(cout);
         
@@ -50,8 +64,8 @@ void doTest()
     {
         if (!nodes[i]) // minimum - already removed
             continue;
-        h.decreaseKey(nodes[i], nodes[i]->key()/10);
-        cout << "min=" << *h.minimum() << endl;
+        h.decrease_key(nodes[i], nodes[i]->key()/10);
+        print_min(&h);
         h.print_roots(cout);
     }
         
@@ -67,7 +81,7 @@ void doTest()
         
     while (!h.empty()) 
     {
-        cout << "min=" << *h.minimum() << endl;
+        print_min(&h);
         h.remove_minimum(); 
         h.print_roots(cout);
     }
