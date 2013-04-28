@@ -7,7 +7,7 @@
  * @date 2010-11-11
  */
 
-#include "FibbonacciHeap.h"
+#include "FibonacciHeap.h"
 #include <iostream>
 #include <vector>
 using namespace std;

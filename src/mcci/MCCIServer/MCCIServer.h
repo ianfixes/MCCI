@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FibbonacciHeap.cpp"
+#include "FibonacciHeap.h"
 #include "MCCISchema.h"
 #include "MCCIRevisionSet.h"
 #include "MCCITime.h"

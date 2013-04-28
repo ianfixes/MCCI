@@ -12,6 +12,8 @@ SET(MCCIServer_SRCS
   MCCISchema.h
   MCCISchema.cpp
   MCCIServerMain.cpp
+  FibonacciHeap.cpp
+  FibonacciHeap.h
 )
 
 # Add executable 

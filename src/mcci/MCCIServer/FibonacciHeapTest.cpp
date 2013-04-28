@@ -1,5 +1,5 @@
 
-#include "FibbonacciHeap.h"
+#include "FibonacciHeap.h"
 
 void doTest()
 {
