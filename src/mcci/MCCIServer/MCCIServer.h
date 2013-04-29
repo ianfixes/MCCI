@@ -10,6 +10,7 @@
 #include <sqlite3.h>
 //#include <unordered_map> // replace with boost?
 
+
 // the settings for operating a MCCI server
 typedef struct
 {
@@ -21,6 +22,7 @@ typedef struct
     CMCCIRevisionSet* revisionset;
 
 } SMCCIServerSettings;
+
 
 /**
    This class is the logical component of the MCCI system's packet request & delivery system.
