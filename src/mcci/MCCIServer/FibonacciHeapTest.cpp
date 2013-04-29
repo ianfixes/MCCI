@@ -8,7 +8,7 @@
 using namespace std;
 
 
-void print_min(FibonacciHeap<string, uint>* h)
+void print_min(FibonacciHeap<uint, string>* h)
 {
         cout << "min=";
         h->minimum()->print_node(cout);
@@ -17,17 +17,17 @@ void print_min(FibonacciHeap<string, uint>* h)
 
 void doTest()
 {
-    FibonacciHeap<string, uint> h;
+    FibonacciHeap<uint, string> h;
     h.m_debug              = true;
     h.m_debug_remove_min   = false;
     h.m_debug_decrease_key = false;
         
-    h.insert("a",4);
-    h.insert("b",2);
-    h.insert("c",7);
-    h.insert("d",5);
-    h.insert("e",1);
-    h.insert("f",8);
+    h.insert(4, "a");
+    h.insert(2, "b");
+    h.insert(7, "c");
+    h.insert(5, "d");
+    h.insert(1, "e");
+    h.insert(8, "f");
     h.print_roots(cout);
         
     while (!h.empty()) 
@@ -39,19 +39,19 @@ void doTest()
         
     cout << endl << endl;
         
-    vector <FibonacciHeapNode<string, uint>*> nodes(6);
+    vector <FibonacciHeapNode<uint, string>*> nodes(6);
     nodes[0] = 
-        h.insert("a",400);
+        h.insert(400, "a");
     nodes[1] = 
-        h.insert("b",200);
+        h.insert(200, "b");
     nodes[2] = 
-        h.insert("c",70);
+        h.insert(70, "c");
     nodes[3] = 
-        h.insert("d",50);
+        h.insert(50, "d");
     nodes[4] = 
-        h.insert("e",10);
+        h.insert(10, "e");
     nodes[5] = 
-        h.insert("f",80);
+        h.insert(80, "f");
     h.print_roots(cout);
     print_min(&h);
         
@@ -71,12 +71,12 @@ void doTest()
         
     cout << endl << endl;
 	
-    h.insert("AA",4);
-    h.insert("BB",2);
-    h.insert("CC",7);
-    h.insert("DD",5);
-    h.insert("EE",1);
-    h.insert("FF",8);
+    h.insert(4, "AA");
+    h.insert(2, "BB");
+    h.insert(7, "CC");
+    h.insert(5, "DD");
+    h.insert(1, "EE");
+    h.insert(8, "FF");
     h.print_roots(cout);
         
     while (!h.empty()) 

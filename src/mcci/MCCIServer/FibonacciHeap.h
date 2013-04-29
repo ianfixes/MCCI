@@ -19,7 +19,7 @@ typedef unsigned int uint;
 /**
  * The heap is a min-heap sorted by Key.
  */
-template <typename Data, typename Key> class FibonacciHeapNode
+template <typename Key, typename Data> class FibonacciHeapNode
 {
   protected:
     Key m_key;
@@ -31,27 +31,27 @@ template <typename Data, typename Key> class FibonacciHeapNode
     //uint m_count; // total number of elements in tree, including this. For debug only
     
     
-    FibonacciHeapNode<Data, Key>* m_previous;  // pointers in a circular doubly linked list
-    FibonacciHeapNode<Data, Key>* m_next;
-    FibonacciHeapNode<Data, Key>* m_child; // pointer to the first child in the list of children
-    FibonacciHeapNode<Data, Key>* m_parent;
+    FibonacciHeapNode<Key, Data>* m_previous;  // pointers in a circular doubly linked list
+    FibonacciHeapNode<Key, Data>* m_next;
+    FibonacciHeapNode<Key, Data>* m_child; // pointer to the first child in the list of children
+    FibonacciHeapNode<Key, Data>* m_parent;
 
   public:
     FibonacciHeapNode() {};
     
-    FibonacciHeapNode(Data d, Key k);
+    FibonacciHeapNode(Key k, Data d);
 	
     // whether this is the only node in the ring
     bool is_single() const;
         
     // inserts a new node after this node
-    void insert(FibonacciHeapNode<Data, Key>* other);
+    void insert(FibonacciHeapNode<Key, Data>* other);
 
     // remove a node from the ring
     void remove();
 
-    void add_child(FibonacciHeapNode<Data, Key>* other);
-    void remove_child(FibonacciHeapNode<Data, Key>* other);
+    void add_child(FibonacciHeapNode<Key, Data>* other);
+    void remove_child(FibonacciHeapNode<Key, Data>* other);
 
     
     void print_node(ostream& out) const;
@@ -66,9 +66,9 @@ template <typename Data, typename Key> class FibonacciHeapNode
 
 
 
-template <typename Data, typename Key> class FibonacciHeap 
+template <typename Key, typename Data> class FibonacciHeap 
 {
-    typedef FibonacciHeapNode<Data, Key> PNode;
+    typedef FibonacciHeapNode<Key, Data> PNode;
     
   protected:
     
@@ -92,7 +92,7 @@ template <typename Data, typename Key> class FibonacciHeap
     void remove(PNode* node, Key minus_infinity);
     void decrease_key(PNode* node, Key new_key);
 
-    PNode* insert(Data d, Key k);	
+    PNode* insert(Key k, Data d);	
     void merge(const FibonacciHeap& other);
 
     void print_roots(ostream& out) const;
@@ -105,8 +105,8 @@ template <typename Data, typename Key> class FibonacciHeap
 ////////////////////////////////////// DEFINITIONS
 
 
-template <typename Data, typename Key>
-    FibonacciHeapNode<Data, Key>::FibonacciHeapNode(Data d, Key k)
+template <typename Key, typename Data>
+    FibonacciHeapNode<Key, Data>::FibonacciHeapNode(Key k, Data d)
 {
     m_key      = k;
     m_data     = d;
@@ -118,16 +118,16 @@ template <typename Data, typename Key>
 } 
 
 
-template <typename Data, typename Key>
-    bool FibonacciHeapNode<Data, Key>::is_single() const
+template <typename Key, typename Data>
+    bool FibonacciHeapNode<Key, Data>::is_single() const
 {
     return (this == this->m_next);
 }
 
 
 // inserts a new node after this node
-template <typename Data, typename Key> 
-    void FibonacciHeapNode<Data, Key>::insert(FibonacciHeapNode<Data, Key>* other) 
+template <typename Key, typename Data> 
+    void FibonacciHeapNode<Key, Data>::insert(FibonacciHeapNode<Key, Data>* other) 
 {
     if (!other) return;
             
@@ -142,8 +142,8 @@ template <typename Data, typename Key>
 }
         
 
-template <typename Data, typename Key>
-    void FibonacciHeapNode<Data, Key>::remove() 
+template <typename Key, typename Data>
+    void FibonacciHeapNode<Key, Data>::remove() 
 {
     this->m_previous->m_next = this->m_next;
     this->m_next->m_previous = this->m_previous;
@@ -151,8 +151,8 @@ template <typename Data, typename Key>
 }
 
 
-template <typename Data, typename Key>
-    void FibonacciHeapNode<Data, Key>::add_child(FibonacciHeapNode<Data, Key>* other) 
+template <typename Key, typename Data>
+    void FibonacciHeapNode<Key, Data>::add_child(FibonacciHeapNode<Key, Data>* other) 
 { // Fibonacci-Heap-Link(other,current)
     if (!m_child)
         m_child = other;
@@ -165,8 +165,8 @@ template <typename Data, typename Key>
 }
 
 
-template <typename Data, typename Key>
-    void FibonacciHeapNode<Data, Key>::remove_child(FibonacciHeapNode<Data, Key>* other) 
+template <typename Key, typename Data>
+    void FibonacciHeapNode<Key, Data>::remove_child(FibonacciHeapNode<Key, Data>* other) 
 {
     if (other->m_parent != this)
         throw string ("Trying to remove a child from a non-parent");
@@ -190,21 +190,21 @@ template <typename Data, typename Key>
 }
 
 	
-template <typename Data, typename Key>
-    void FibonacciHeapNode<Data, Key>::print_node(ostream& out) const
+template <typename Key, typename Data>
+    void FibonacciHeapNode<Key, Data>::print_node(ostream& out) const
 {
     out << this->m_data << ":" << this->m_key;
 }
             
 	
-template <typename Data, typename Key>
-    void FibonacciHeapNode<Data, Key>::print_tree(ostream& out) const 
+template <typename Key, typename Data>
+    void FibonacciHeapNode<Key, Data>::print_tree(ostream& out) const 
 {
     out << m_data << ":" << m_key << ":" << m_degree << ":" << m_mark;
     if (m_child) 
     {
         out << "(";
-        const FibonacciHeapNode<Data, Key>* n = m_child;
+        const FibonacciHeapNode<Key, Data>* n = m_child;
 
         do 
         {
@@ -221,10 +221,10 @@ template <typename Data, typename Key>
 
 
 
-template <typename Data, typename Key>
-    void FibonacciHeapNode<Data, Key>::print_all(ostream& out) const 
+template <typename Key, typename Data>
+    void FibonacciHeapNode<Key, Data>::print_all(ostream& out) const 
 {
-    const FibonacciHeapNode<Data, Key>* n = this;
+    const FibonacciHeapNode<Key, Data>* n = this;
     do 
     {
         n->print_tree(out); 
@@ -244,8 +244,8 @@ template <typename Data, typename Key>
 //////////////////////////////////////////// FibonacciHeap
 
 
-template <typename Data, typename Key>
-    FibonacciHeap<Data, Key>::FibonacciHeap()
+template <typename Key, typename Data>
+    FibonacciHeap<Key, Data>::FibonacciHeap()
 {
     m_root_with_min_key  = NULL;
     m_count              = 0;
@@ -257,8 +257,8 @@ template <typename Data, typename Key>
 
 
 
-template <typename Data, typename Key>
-    FibonacciHeapNode<Data, Key>* FibonacciHeap<Data, Key>::insert_node(FibonacciHeapNode<Data, Key>* new_node) 
+template <typename Key, typename Data>
+    FibonacciHeapNode<Key, Data>* FibonacciHeap<Key, Data>::insert_node(FibonacciHeapNode<Key, Data>* new_node) 
 {
     //if (m_debug) cout << "insert " << (*new_node) << endl;
     if (!m_root_with_min_key) 
@@ -276,8 +276,8 @@ template <typename Data, typename Key>
 }
 
 
-template <typename Data, typename Key>
-    FibonacciHeapNode<Data, Key>* FibonacciHeap<Data, Key>::minimum() const 
+template <typename Key, typename Data>
+    FibonacciHeapNode<Key, Data>* FibonacciHeap<Key, Data>::minimum() const 
 { 
     if (!m_root_with_min_key)
         throw string("no minimum element");
@@ -285,8 +285,8 @@ template <typename Data, typename Key>
 }
 
 
-template <typename Data, typename Key>
-    void FibonacciHeap<Data, Key>::print_roots(ostream& out) const 
+template <typename Key, typename Data>
+    void FibonacciHeap<Key, Data>::print_roots(ostream& out) const 
 {
     out << "m_max_degree=" << m_max_degree << "  m_count=" << m_count << "  roots=";
     if (m_root_with_min_key)
@@ -296,8 +296,8 @@ template <typename Data, typename Key>
 }
 
 
-template <typename Data, typename Key>
-    void FibonacciHeap<Data, Key>::merge(const FibonacciHeap& other) 
+template <typename Key, typename Data>
+    void FibonacciHeap<Key, Data>::merge(const FibonacciHeap& other) 
 {  // Fibonacci-Heap-Union
     m_root_with_min_key->insert(other.m_root_with_min_key);
     if (!m_root_with_min_key || 
@@ -308,18 +308,18 @@ template <typename Data, typename Key>
 }
 
 
-template <typename Data, typename Key>
-    FibonacciHeapNode<Data, Key>* FibonacciHeap<Data, Key>::insert(Data d, Key k) 
+template <typename Key, typename Data>
+    FibonacciHeapNode<Key, Data>* FibonacciHeap<Key, Data>::insert(Key k, Data d) 
 {
     if (m_debug) cout << "insert " << d << ":" << k << endl;
     ++m_count;
     // create a new tree with a single m_key:
-    return insert_node(new FibonacciHeapNode<Data, Key>(d,k));
+    return insert_node(new FibonacciHeapNode<Key, Data>(k, d));
 }
 
 
-template <typename Data, typename Key>
-    void FibonacciHeap<Data, Key>::remove_minimum() 
+template <typename Key, typename Data>
+    void FibonacciHeap<Key, Data>::remove_minimum() 
 {  // Fibonacci-Heap-Extract-Min, CONSOLIDATE
     if (!m_root_with_min_key)
         throw string("trying to remove from an empty heap");
@@ -336,7 +336,7 @@ template <typename Data, typename Key>
             cout << "  root's children: "; 
             m_root_with_min_key->m_child->print_all(cout);
         }
-        FibonacciHeapNode<Data, Key>* c = m_root_with_min_key->m_child;
+        FibonacciHeapNode<Key, Data>* c = m_root_with_min_key->m_child;
         do
         {
             c->m_parent = NULL;
@@ -366,10 +366,10 @@ template <typename Data, typename Key>
     }
 
     /// Phase 2: merge roots with the same degree:
-    vector<FibonacciHeapNode<Data, Key>*> degree_roots (m_max_degree + 1); // make room for a new degree
-    fill (degree_roots.begin(), degree_roots.end(), (FibonacciHeapNode<Data, Key>*)NULL);
+    vector<FibonacciHeapNode<Key, Data>*> degree_roots (m_max_degree + 1); // make room for a new degree
+    fill (degree_roots.begin(), degree_roots.end(), (FibonacciHeapNode<Key, Data>*)NULL);
     m_max_degree = 0;
-    FibonacciHeapNode<Data, Key>* current_pointer = m_root_with_min_key->m_next;
+    FibonacciHeapNode<Key, Data>* current_pointer = m_root_with_min_key->m_next;
     uint current_degree;
     do 
     {
@@ -384,11 +384,11 @@ template <typename Data, typename Key>
                  << current_degree << endl;
         }
 
-        FibonacciHeapNode<Data, Key>* current = current_pointer;
+        FibonacciHeapNode<Key, Data>* current = current_pointer;
         current_pointer = current_pointer->m_next;
         while (degree_roots[current_degree]) 
         { // merge the two roots with the same degree:
-            FibonacciHeapNode<Data, Key>* other = degree_roots[current_degree]; // another root with the same degree
+            FibonacciHeapNode<Key, Data>* other = degree_roots[current_degree]; // another root with the same degree
             if (current->key() > other->key())
                 swap(other,current); 
             // now current->key() <= other->key() - make other a child of current:
@@ -405,7 +405,7 @@ template <typename Data, typename Key>
             degree_roots[current_degree] = NULL;
             ++current_degree;
             if (current_degree >= degree_roots.size())
-                degree_roots.push_back((FibonacciHeapNode<Data, Key>*)NULL);
+                degree_roots.push_back((FibonacciHeapNode<Key, Data>*)NULL);
         }
         // keep the current root as the first of its degree in the degrees array:
         degree_roots[current_degree] = current;
@@ -431,7 +431,7 @@ template <typename Data, typename Key>
             }
             degree_roots[d]->m_next = degree_roots[d]->m_previous = degree_roots[d];
             insert_node(degree_roots[d]);
-            if (d>new_max_degree)
+            if (d > new_max_degree)
                 new_max_degree = d;		
         } 
         else 
@@ -443,8 +443,8 @@ template <typename Data, typename Key>
 }
 	
 
-template <typename Data, typename Key>
-    void FibonacciHeap<Data, Key>::decrease_key(FibonacciHeapNode<Data, Key>* node, Key new_key) 
+template <typename Key, typename Data>
+    void FibonacciHeap<Key, Data>::decrease_key(FibonacciHeapNode<Key, Data>* node, Key new_key) 
 {
     if (new_key >= node->m_key)
         throw string("Trying to decrease key to a greater key");
@@ -459,7 +459,7 @@ template <typename Data, typename Key>
     node->m_key = new_key;
 
     // Check if the new key violates the heap invariant:
-    FibonacciHeapNode<Data, Key>* parent = node->m_parent;
+    FibonacciHeapNode<Key, Data>* parent = node->m_parent;
     if (!parent) 
     { // root node - just make sure the minimum is correct
         if (new_key < m_root_with_min_key->key())
@@ -505,8 +505,8 @@ template <typename Data, typename Key>
 }
 
 
-template <typename Data, typename Key>
-    void FibonacciHeap<Data, Key>::remove(FibonacciHeapNode<Data, Key>* node, Key minus_infinity) 
+template <typename Key, typename Data>
+    void FibonacciHeap<Key, Data>::remove(FibonacciHeapNode<Key, Data>* node, Key minus_infinity) 
 {
     if (minus_infinity >= minimum()->key())
         throw string("2nd argument to remove must be a key that is smaller than all other keys");
