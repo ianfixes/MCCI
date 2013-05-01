@@ -4,7 +4,7 @@
 #include "MCCISchema.h"
 #include "MCCIRevisionSet.h"
 #include "MCCITime.h"
-#include "packets.h"
+#include "MCCITypes.h"
 #include <map>
 #include <vector>
 #include <sqlite3.h>

@@ -2,7 +2,7 @@ PROJECT(MCCIServer)
  
 #what files are needed?
 SET(MCCIServer_SRCS
-  packets.h
+  MCCITypes.h
   FibonacciHeap.h
   MCCITime.h
   MCCITime.cpp
