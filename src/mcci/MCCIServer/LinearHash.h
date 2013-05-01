@@ -17,7 +17,7 @@ template <typename Key, typename Data> class LinearHash
 {
 
   protected:
-    map <Key, Data>** m_container;
+    map <Key, Data>* m_container;
     unsigned int m_size;
     
   public:
@@ -26,17 +26,12 @@ template <typename Key, typename Data> class LinearHash
     LinearHash(unsigned int size)
     {
         this->m_size = size;
-        this->m_container = new map<Key, Data>*[this->m_size];
-
-        for (int i = 0; i < this->m_size; ++i)
-            this->m_container[i] = new map<Key, Data>();
+        this->m_container = new map<Key, Data>[this->m_size]();
     };
 
     
     ~LinearHash()
     {
-        for (int i = 0; i < this->m_size; ++i)
-            delete this->m_container[i];
         delete[] this->m_container; // TODO: check proper delete syntax
     };
 
@@ -53,7 +48,7 @@ template <typename Key, typename Data> class LinearHash
         unsigned int sum = 0;
 
         for (unsigned int i = 0; i < this->m_size; ++i)
-            sum += this->m_container[i]->size();
+            sum += this->m_container[i].size();
 
         return sum;
     }
@@ -65,8 +60,8 @@ template <typename Key, typename Data> class LinearHash
         unsigned int max = 0;
 
         for (unsigned int i = 0; i < this->m_size; ++i)
-            if (max < this->m_container[i]->size())
-                max = this->m_container[i]->size();
+            if (max < this->m_container[i].size())
+                max = this->m_container[i].size();
 
         return max;
     }
@@ -74,32 +69,32 @@ template <typename Key, typename Data> class LinearHash
     // explicitly insert an element into the hash
     void insert(Key k, Data d)
     {
-        (*(this->m_container[k % this->m_size]))[k] = d;
+        this->m_container[k % this->m_size][k] = d;
     }
 
     // explicitly remove a key from the hash
     void remove(Key k)
     {
-        this->m_container[k % this->m_size]->erase(k);
+        this->m_container[k % this->m_size].erase(k);
     }
 
     // check existence of a hashed value
     bool has_key(Key k)
     {
         unsigned int idx = k % this->m_size;
-        return this->m_container[idx]->end() != this->m_container[idx]->find(k);
+        return this->m_container[idx].end() != this->m_container[idx].find(k);
     }
 
     // array-style access to the hash
     Data& operator[] (Key k)
     {
-        return (*(this->m_container[k % this->m_size]))[k];
+        return this->m_container[k % this->m_size][k];
     }
 
     void clear()
     {
         for (int i = 0; i < this->m_size; ++i)
-            this->m_container[i]->clear();
+            this->m_container[i].clear();
     }
     
 };
