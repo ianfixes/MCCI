@@ -3,8 +3,7 @@
 #include <string>
 #include <sqlite3.h>
 #include <openssl/sha.h>
-//#include <unordered_map> // replace with boost?
-#include <vector>
+#include "LinearHash.h"
 
 using namespace std;
 
@@ -27,8 +26,8 @@ class CMCCISchema
     string get_hash();
 
   protected:
-    
-    vector<unsigned int> m_index_of_variable;  // convert variable_id to an index in our array
+
+    LinearHash<unsigned int, unsigned int> m_index_of_variable;  // convert variable_id to an index in our array
 
     sqlite3* m_db;
 

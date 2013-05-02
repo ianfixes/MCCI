@@ -18,12 +18,19 @@ template <typename Key, typename Data> class LinearHash
 {
 
   protected:
+    // to deal with collisions, we use a map (implemented as a tree usually). initialize an array of trees
     map <Key, Data>* m_container;
+    
     unsigned int m_size;
     
   public:
 
-    // to deal with collisions, we use a map (implemented as a tree usually). initialize an array of trees
+    LinearHash()
+    {
+        this->resize(1);
+    };
+    
+
     LinearHash(unsigned int size)
     {
         this->m_size = 0;
