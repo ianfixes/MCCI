@@ -23,12 +23,21 @@ class CMCCISchema
     void load(sqlite3* schema_db);
 
     // get a hash that describes the working variable set
-    string get_hash();
+    string get_hash() { return m_hashval; };
 
+    unsigned int cardinal_of_variable(unsigned int variable_id) { return m_index_of_variable[variable_id]; };
+
+    string name_of_variable(unsigned int variable_id) { return m_cardinalname[cardinal_of_variable(variable_id)]; };
+    string name_of_cardinal(unsigned int cardinal_id) { return m_cardinalname[cardinal_id]; };
+                            
   protected:
 
     LinearHash<unsigned int, unsigned int> m_index_of_variable;  // convert variable_id to an index in our array
 
+    string* m_cardinalname;
+    
+    string m_hashval;
+    
     sqlite3* m_db;
 
 
