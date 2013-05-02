@@ -5,10 +5,20 @@
 
 using namespace std;
 
+
+typedef int footype;
+typedef int bartype;
+
 int main()
 {
     LinearHash<unsigned long, string> lh(101);
 
+
+    footype f = 3;
+    bartype b;
+
+    b = f;
+    
     lh.insert(3000, "three thousand");
     lh.insert(1000000, "one million");
     lh[37] = "thirty seven";
@@ -43,7 +53,10 @@ int main()
         printf("\nCount is now %d, max_collisions is %d", lh.count(), lh.max_collisions());
     }
 
-
+    printf("\n\nTesting resize with no segfaults... ");
+    lh.resize(7);
+    printf("seems OK.");
+    
     printf("\n\n");
     
     return 0;

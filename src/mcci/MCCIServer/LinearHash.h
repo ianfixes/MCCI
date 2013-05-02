@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <string>
 #include <map>
 
 using namespace std;
@@ -25,8 +26,8 @@ template <typename Key, typename Data> class LinearHash
     // to deal with collisions, we use a map (implemented as a tree usually). initialize an array of trees
     LinearHash(unsigned int size)
     {
-        this->m_size = size;
-        this->m_container = new map<Key, Data>[this->m_size]();
+        this->m_size = 0;
+        this->resize(size);
     };
 
     
@@ -36,12 +37,29 @@ template <typename Key, typename Data> class LinearHash
     };
 
 
+    //resize, destructively
+    void resize(unsigned int size)
+    {
+        if (!size)
+        {
+            throw string("Tried to set hash size to 0");
+        }
+        
+        if (this->m_size) delete[] this->m_container;
+
+        this->m_size = size;
+        this->m_container = new map<Key, Data>[this->m_size]();
+        
+    }
+
+    
     // return the size of the hash table
     void get_size() const
     {
         return this->m_size;
     }
 
+    
     // return the number of elements in the hash table
     unsigned int count() const
     {
@@ -66,18 +84,21 @@ template <typename Key, typename Data> class LinearHash
         return max;
     }
 
+    
     // explicitly insert an element into the hash
     void insert(Key k, Data d)
     {
         this->m_container[k % this->m_size][k] = d;
     }
 
+    
     // explicitly remove a key from the hash
     void remove(Key k)
     {
         this->m_container[k % this->m_size].erase(k);
     }
 
+    
     // check existence of a hashed value
     bool has_key(Key k)
     {
@@ -85,12 +106,15 @@ template <typename Key, typename Data> class LinearHash
         return this->m_container[idx].end() != this->m_container[idx].find(k);
     }
 
+    
     // array-style access to the hash
     Data& operator[] (Key k)
     {
         return this->m_container[k % this->m_size][k];
     }
 
+
+    // remove all elements from the hash
     void clear()
     {
         for (int i = 0; i < this->m_size; ++i)
