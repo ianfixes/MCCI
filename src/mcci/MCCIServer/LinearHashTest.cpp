@@ -27,11 +27,12 @@ int main()
 
     printf("\n3001 in hash? %d", lh.has_key(3001));
     printf("\n3000 in hash? %d", lh.has_key(3000));
-    printf("\nValue of 3000 is %s", lh[3000].c_str());
+    printf("\nValue of 3000 is %d", lh[3000].c_str());
 
     lh.remove(3000);
     printf("\nRemoved 3000.  3000 in hash? %d", lh.has_key(3000));
-
+    printf("\nhash[3000] = %s", lh[3000].c_str());
+    
     printf("\n");
 
     printf("\n37 = %s", lh[37].c_str());
@@ -56,6 +57,12 @@ int main()
     printf("\n\nTesting resize with no segfaults... ");
     lh.resize(7);
     printf("seems OK.");
+
+
+    LinearHash<unsigned int, unsigned int> ilh(2);
+
+    printf("\n\nInt value of uninitialized lookup key 42 is %d (we expect 0)", ilh[42]);
+
     
     printf("\n\n");
     
