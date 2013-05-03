@@ -29,16 +29,6 @@ static unsigned int LINEAR_HASH_TABLE_PRIMES[] = {
 };
 
 
-static unsigned int find_good_linear_hash_table_size(unsigned int desired_size)
-{
-    unsigned int i;
-    if (desired_size < 2) return 1;
-    for (i = 1; i < 16 && LINEAR_HASH_TABLE_PRIMES[i] <= desired_size; ++i);
-
-    return LINEAR_HASH_TABLE_PRIMES[i-1];
-}
-
-
 
 
 /**
@@ -62,6 +52,7 @@ template <typename Key, typename Data> class LinearHash
 
     LinearHash()
     {
+        this->m_size = 0;
         this->resize(1);
     };
     
@@ -79,7 +70,7 @@ template <typename Key, typename Data> class LinearHash
     };
 
 
-    //resize, destructively
+    //resize, destructively, to exact size
     void resize(unsigned int size)
     {
         if (!size)
@@ -94,9 +85,26 @@ template <typename Key, typename Data> class LinearHash
         
     }
 
+
+    // resize to a prime number size according to desired storage
+    void resize_nearest_prime(unsigned int desired_size)
+    {
+        unsigned int i;
+        if (desired_size < 2)
+        {
+            this->resize(1);
+        }
+        else
+        {
+            for (i = 1; i < 16 && LINEAR_HASH_TABLE_PRIMES[i] <= desired_size; ++i);
+        
+            this->resize(LINEAR_HASH_TABLE_PRIMES[i - 1]);
+        }
+    }
+    
     
     // return the size of the hash table
-    void get_size() const
+    unsigned int get_size() const
     {
         return this->m_size;
     }

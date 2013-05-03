@@ -8,7 +8,11 @@ using namespace std;
 
 void test_hash_size(unsigned int desired)
 {
-    printf("\nfind_good_linear_hash_table_size(%d) = %d", desired, find_good_linear_hash_table_size(desired));
+    LinearHash<int, int> lh;
+
+    lh.resize_nearest_prime(desired);
+    
+    printf("\nnearest_prime(%d) = %d", desired, lh.get_size());
 }
 
 int main()
@@ -38,7 +42,7 @@ int main()
 
     printf("\n3001 in hash? %d", lh.has_key(3001));
     printf("\n3000 in hash? %d", lh.has_key(3000));
-    printf("\nValue of 3000 is %d", lh[3000].c_str());
+    printf("\nValue of 3000 is %s", lh[3000].c_str());
 
     lh.remove(3000);
     printf("\nRemoved 3000.  3000 in hash? %d", lh.has_key(3000));
