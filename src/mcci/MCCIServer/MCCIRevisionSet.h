@@ -2,7 +2,8 @@
 
 #include <string>
 #include <sqlite3.h>
-#include <vector>
+#include "LinearHash.h"
+#include "MCCITypes.h"
 
 using namespace std;
 
@@ -21,22 +22,19 @@ class CMCCIRevisionSet
     sqlite3_stmt* m_read;
     sqlite3_stmt* m_update;
     
-    vector<int> m_cache; // the max current sequence number "in the wild"
+    LinearHash<MCCI_VARIABLE_T, MCCI_REVISION_T> m_cache; // the max current sequence number "in the wild"
     
     bool m_strict; // whether to bail if schema signatures don't match (default yes)
     
 
   public:
-    CMCCIRevisionSet(sqlite3* revision_db, string schema_signature);
+    CMCCIRevisionSet(sqlite3* revision_db, unsigned int schema_cardinality, string schema_signature);
     ~CMCCIRevisionSet();
 
     void load(sqlite3* revision_db);
 
-    int get_revision(int variable_id);  // return current value of revision
-    int inc_revision(int variable_id);  // increment revision and return value
-
-    // TODO: warn if the array will be shrunk
-    void set_max(int variable_max_id) { m_cache.resize(variable_max_id, -1); };
+    MCCI_REVISION_T get_revision(MCCI_VARIABLE_T variable_id);  // return current value of revision
+    MCCI_REVISION_T inc_revision(MCCI_VARIABLE_T variable_id);  // increment revision and return value
 
     // the signature of the schema we're using
     string get_signature();
@@ -48,6 +46,6 @@ class CMCCIRevisionSet
     
   protected:
     // put a variable in the DB if it's not there already
-    void check_revision(int variable_id); 
+    void check_revision(MCCI_VARIABLE_T variable_id); 
         
 };

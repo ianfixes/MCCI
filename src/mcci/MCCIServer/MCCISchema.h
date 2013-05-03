@@ -4,6 +4,7 @@
 #include <sqlite3.h>
 #include <openssl/sha.h>
 #include "LinearHash.h"
+#include "MCCITypes.h"
 
 using namespace std;
 
@@ -20,22 +21,23 @@ class CMCCISchema
     CMCCISchema(sqlite3* schema_db) { this->load(schema_db); };
     ~CMCCISchema();
 
+    // populate the db
     void load(sqlite3* schema_db);
 
     // get a hash that describes the working variable set
     string get_hash() { return m_hashval; };
 
-    unsigned int cardinal_of_variable(unsigned int variable_id) { return m_index_of_variable[variable_id]; };
+    // the number of variables being used
+    unsigned int get_cardinality() { return m_name.count(); }; 
 
-    string name_of_variable(unsigned int variable_id) { return m_cardinalname[cardinal_of_variable(variable_id)]; };
-    string name_of_cardinal(unsigned int cardinal_id) { return m_cardinalname[cardinal_id]; };
+    // lookup the name of a variable
+    string name_of_variable(MCCI_VARIABLE_T variable_id) { return m_name[variable_id]; };
+
                             
   protected:
 
-    LinearHash<unsigned int, unsigned int> m_index_of_variable;  // convert variable_id to an index in our array
+    LinearHash<MCCI_VARIABLE_T, string> m_name;  // the name of a variable
 
-    string* m_cardinalname;
-    
     string m_hashval;
     
     sqlite3* m_db;

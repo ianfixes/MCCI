@@ -2,8 +2,9 @@
 #include "MCCIRevisionSet.h"
 #include <stdio.h>
 
-CMCCIRevisionSet::CMCCIRevisionSet(sqlite3* revision_db, string schema_signature)
+CMCCIRevisionSet::CMCCIRevisionSet(sqlite3* revision_db, unsigned int schema_cardinality, string schema_signature)
 {
+    m_cache.resize_nearest_prime(schema_cardinality);
     load(revision_db);
     m_strict = true;
 }
@@ -50,7 +51,11 @@ void CMCCIRevisionSet::set_signature(string signature)
 {
     string currentsig = get_signature();
 
-    if ("" == currentsig)
+    if ("" != currentsig)
+    {
+        throw string("Tried to change signature from " + currentsig + " to " + signature);
+    }
+    else
     {
         sqlite3_exec(m_db, "delete from signature", NULL, NULL, NULL); // FIXME: remove this? need way to reset
         
@@ -62,10 +67,7 @@ void CMCCIRevisionSet::set_signature(string signature)
         fprintf(stderr, "\nerrmsg is %s", sqlite3_errmsg(m_db));
         sqlite3_finalize(s);
     }
-    else
-    {
-        //FIXME: error or warning
-    }
+    
 
 }
 
@@ -80,19 +82,21 @@ void CMCCIRevisionSet::load(sqlite3* revision_db)
     sqlite3_prepare_v2(m_db, "update revision set revision=? where var_id=?", 64, &m_update, NULL);
 }
 
-void CMCCIRevisionSet::check_revision(int variableID)
+
+void CMCCIRevisionSet::check_revision(MCCI_VARIABLE_T variableID)
 {
-    if (-1 == m_cache[variableID])
+    if (!m_cache.has_key(variableID))
     {
+        // bind placeholder #1 of the read statement to our new var id
         sqlite3_bind_int(m_read, 1, variableID);
-        int result = sqlite3_step(m_read);
+        int result = sqlite3_step(m_read);  // look for the variable
         
         switch (result)
         {
-            case SQLITE_ROW:
-                m_cache[variableID] = sqlite3_column_int(m_read, 0);
+            case SQLITE_ROW:  // already exists
+                m_cache[variableID] = sqlite3_column_int(m_read, 0); 
                 break;
-            case SQLITE_DONE:
+            case SQLITE_DONE: // does not exist
                 sqlite3_bind_int(m_insert, 1, variableID);
                 sqlite3_step(m_insert); //TODO: check return value
                 sqlite3_clear_bindings(m_insert);
@@ -104,21 +108,24 @@ void CMCCIRevisionSet::check_revision(int variableID)
                 //TODO: say what error we got?
                 break;
         }
-        
+
+        // clean up
         sqlite3_clear_bindings(m_read);
         sqlite3_reset(m_read);
     }
     
 }
 
-int CMCCIRevisionSet::get_revision(int variableID)
+
+MCCI_REVISION_T CMCCIRevisionSet::get_revision(MCCI_VARIABLE_T variableID)
 {
     check_revision(variableID);
 
     return m_cache[variableID];
 }
 
-int CMCCIRevisionSet::inc_revision(int variableID)
+
+MCCI_REVISION_T CMCCIRevisionSet::inc_revision(MCCI_VARIABLE_T variableID)
 {
     check_revision(variableID);
 

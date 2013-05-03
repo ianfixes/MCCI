@@ -52,23 +52,30 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    schema = new CMCCISchema(schema_db);
-    rs     = new CMCCIRevisionSet(rs_db, "signature");
-
-    // build settings struct
-    SMCCIServerSettings settings;
-
-    // these should be prime numbers because they become hash table sizes
-    settings.max_local_requests = 101;
-    settings.max_remote_requests = 199;
-
-    // assign other objects
-    settings.schema = schema;
-    settings.revisionset = rs;
-
-    myServer = new CMCCIServer(settings);
-    
-    cleanup();
+    try
+    {
+        schema = new CMCCISchema(schema_db);
+        rs     = new CMCCIRevisionSet(rs_db, schema->get_cardinality(), "signature");
+        
+        // build settings struct
+        SMCCIServerSettings settings;
+        
+        // these should be prime numbers because they become hash table sizes
+        settings.max_local_requests = 101;
+        settings.max_remote_requests = 199;
+        
+        // assign other objects
+        settings.schema = schema;
+        settings.revisionset = rs;
+        
+        myServer = new CMCCIServer(settings);
+        
+        cleanup();
+    }
+    catch (string s)
+    {
+        printf("\n\nGot error: %s\n\n", s.c_str());
+    }
     return 0;
     
 }

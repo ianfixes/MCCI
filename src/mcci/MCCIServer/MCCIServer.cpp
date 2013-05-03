@@ -19,7 +19,7 @@ bool CMCCIServer::is_rejectable_request(const SMCCIRequestPacket* input)
 }
 
 
-int CMCCIServer::process_request(int requestor_id, const SMCCIRequestPacket* input, SMCCIResponsePacket* response)
+int CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id, const SMCCIRequestPacket* input, SMCCIResponsePacket* response)
 {
     response->requests_remaining_local  = client_free_requests_local(requestor_id);
     response->requests_remaining_remote = client_free_requests_remote(requestor_id);
@@ -73,7 +73,9 @@ int CMCCIServer::process_request(int requestor_id, const SMCCIRequestPacket* inp
 }
 
 
-int CMCCIServer::process_forwardable_request(int requestor_id, const SMCCIRequestPacket* input, SMCCIResponsePacket* response)
+int CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
+                                             const SMCCIRequestPacket* input,
+                                             SMCCIResponsePacket* response)
 {
     //TODO: assert input->variable_id != 0
     //TODO: assert node_address != ALL
@@ -91,12 +93,12 @@ int CMCCIServer::process_forwardable_request(int requestor_id, const SMCCIReques
     }           
     // guaranteed to have a measurable value for revision=0 at this point
     
-    int firstrev;
+    MCCI_REVISION_T firstrev;
     int direction = (input->quantity > 0) - (input->quantity < 0);  // extracts sign
-    int quantity  = input->quantity * direction;  // cancels any negative sign
-    int limit;
+    unsigned int quantity  = input->quantity * direction;  // cancels any negative sign
+    unsigned int limit;
 
-    // calculate limit -- max quantity allowed.  basically same calculation using 
+    // calculate limit -- max quantity allowed.  basically same calculation using local vs remote
     if (is_for_me)
         limit = response->requests_remaining_local >= quantity ? quantity : response->requests_remaining_local;
     else
@@ -110,17 +112,17 @@ int CMCCIServer::process_forwardable_request(int requestor_id, const SMCCIReques
             firstrev = input->revision + quantity - limit;
     else
     {
-        int maxrevision = m_settings.revisionset->get_revision(input->variable_id);
+        MCCI_REVISION_T maxrevision = m_settings.revisionset->get_revision(input->variable_id);
         if (1 == direction)
             firstrev = maxrevision - quantity + 1;
         else
             firstrev = maxrevision - limit + 1;
     }
-    int lastrev = firstrev + limit - 1;
+    MCCI_REVISION_T lastrev = firstrev + limit - 1;
 
     
     // expand subscription range and add to various queues
-    for (int r = firstrev; r <= lastrev; r++)
+    for (MCCI_REVISION_T r = firstrev; r <= lastrev; r++)
     {
         if (is_for_me)
         {
@@ -136,7 +138,7 @@ int CMCCIServer::process_forwardable_request(int requestor_id, const SMCCIReques
 
     // decrement the remaining requests
     // FIXME, this should mess with the vector
-    int rem;
+    unsigned int rem;
     if (is_for_me)
     {
         rem = response->requests_remaining_local;
@@ -154,12 +156,12 @@ int CMCCIServer::process_forwardable_request(int requestor_id, const SMCCIReques
 }
 
 
-int CMCCIServer::process_data(int provider_id, const SMCCIDataPacket* input)
+int CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPacket* input)
 {
     return 1;   
 }
 
-int CMCCIServer::process_production(int provider_id, const SMCCIProductionPacket* input, SMCCIAcceptancePacket* output)
+int CMCCIServer::process_production(MCCI_CLIENT_ID_T provider_id, const SMCCIProductionPacket* input, SMCCIAcceptancePacket* output)
 {
     return 1;
 }

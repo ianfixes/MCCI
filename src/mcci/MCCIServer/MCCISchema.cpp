@@ -5,11 +5,13 @@ using namespace std;
 
 void CMCCISchema::load(sqlite3* schema_db)
 {
-    // remember to allocate n+1 for the hash because 0 is a special flag value
+    unsigned int cardinality = 0;
+    
+    // run a count query to find out how many entries we need (i.e. cardinality)
 
-    // run a count query to find out how many entries we need
+    m_name.resize_nearest_prime(cardinality);
 
-    // allocate m_index_of_variable to that size
+    // loop through, build m_name and hash value
 
     bool build_hash = true;
     if (build_hash)
