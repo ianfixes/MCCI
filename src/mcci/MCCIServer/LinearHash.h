@@ -6,6 +6,41 @@
 
 using namespace std;
 
+
+/* A table of prime numbers, each less than a power of 2 */
+static unsigned int LINEAR_HASH_TABLE_PRIMES[] = {
+    1,
+    2,
+    4 - 1,
+    8 - 1,
+    16 - 3,
+    32 - 1,
+    64 - 3,
+    128 - 1,
+    256 - 5,
+    512 - 3,
+    1024 - 3,
+    2048 - 9,
+    4096 - 3,
+    8192 - 1,
+    16384 - 3,
+    32768 - 19,
+    65536 - 15,
+};
+
+
+unsigned int find_good_linear_hash_table_size(unsigned int desired_size)
+{
+    unsigned int i;
+    if (desired_size < 2) return 1;
+    for (i = 1; i < 16 && LINEAR_HASH_TABLE_PRIMES[i] <= desired_size; ++i);
+
+    return LINEAR_HASH_TABLE_PRIMES[i-1];
+}
+
+
+
+
 /**
    A simple hash table that uses f(i) = i for the hash function (so does Sun's hash table implementation)
 
