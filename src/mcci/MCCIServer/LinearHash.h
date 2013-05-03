@@ -29,7 +29,7 @@ static unsigned int LINEAR_HASH_TABLE_PRIMES[] = {
 };
 
 
-unsigned int find_good_linear_hash_table_size(unsigned int desired_size)
+static unsigned int find_good_linear_hash_table_size(unsigned int desired_size)
 {
     unsigned int i;
     if (desired_size < 2) return 1;
