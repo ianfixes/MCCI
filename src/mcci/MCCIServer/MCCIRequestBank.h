@@ -31,30 +31,46 @@
 #include "FibonacciHeap.h"
 #include <map>
 
-template<typename Input, typename Key1>
+template<typename KeySet>
 class RequestBank
 {
 
   protected:
-    FibonacciHeap<MCCI_TIME_T, Key1> m_timeouts;
-    LinearHash<Key1,
-               map<MCCI_CLIENT_ID_T,
-                   FibonacciHeapNode<MCCI_TIME_T, Key1>*
-               > > m_bank;
+    FibonacciHeap<MCCI_TIME_T, KeySet> m_timeouts;
 
   public:
-    RequestBank(unsigned int size) { m_bank.resize_nearest_prime(size); };
+    RequestBank(unsigned int size) { };
     virtual ~RequestBank() {};
        
-    virtual Key1 get_key_1(Input const input) = 0;
+    virtual int add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout) = 0;
 
-    int add(Input const input, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
+};
+
+
+template<typename KeySet, typename Key1>
+    class RequestBankOneKey : public RequestBank<KeySet>
+{
+
+  protected:
+    LinearHash<Key1,
+               map<MCCI_CLIENT_ID_T,
+                   FibonacciHeapNode<MCCI_TIME_T, KeySet>* > > m_bank;
+
+
+
+  public:
+    RequestBankOneKey(unsigned int size) : RequestBank<KeySet>(size) { m_bank.resize_nearest_prime(size); };
+    virtual ~RequestBankOneKey() {};
+       
+    virtual Key1 get_key(KeySet const key_set) = 0;
+
+    int add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
     {
-        Key1 k = this->get_key_1(input);
+        Key1 k = this->get_key(key_set);
 
-        FibonacciHeapNode<MCCI_TIME_T, Key1>* new_node;
+        FibonacciHeapNode<MCCI_TIME_T, KeySet>* new_node;
 
-        new_node = new FibonacciHeapNode<MCCI_TIME_T, Key1>();
+        new_node = new FibonacciHeapNode<MCCI_TIME_T, KeySet>();
 
         
         
@@ -65,19 +81,29 @@ class RequestBank
 
 
 
-template<typename Input, typename Key1, typename Key2>
-    class RequestBankTwoKeys : public RequestBank<Input, Key1>
+
+template<typename KeySet, typename Key1, typename Key2>
+    class RequestBankTwoKeys : public RequestBank<KeySet>
 {
+
+  protected:
+
+//    LinearHash<Key2,
+//        (map<MCCI_CLIENT_ID_T,
+//         (FibonacciHeapNode<MCCI_TIME_T, KeySet>*) > ) > m_bank;
+
+
   public:
-    RequestBankTwoKeys(unsigned int size) : RequestBank<Input, Key1>(size) {};
+    RequestBankTwoKeys(unsigned int size) : RequestBank<KeySet>(size) {};
     virtual ~RequestBankTwoKeys() {};
     
-    virtual Key2 get_key_2(Input const input) = 0;
+    virtual Key1 get_key_1(KeySet const key_set) = 0;
+    virtual Key2 get_key_2(KeySet const key_set) = 0;
 
-    int add(Input const input, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
+    int add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
     {
-        Key1 k1 = this->get_key_1(input);
-        Key2 k2 = this->get_key_2(input);
+        Key1 k1 = this->get_key_1(key_set);
+        Key2 k2 = this->get_key_2(key_set);
 
         return k1 != 0 && k2 != 0;
     }
@@ -86,20 +112,32 @@ template<typename Input, typename Key1, typename Key2>
 
 
 
-class HostRequestBank : public RequestBank<MCCI_NODE_ADDRESS_T, MCCI_NODE_ADDRESS_T>
+class HostRequestBank : public RequestBankOneKey<MCCI_NODE_ADDRESS_T, MCCI_NODE_ADDRESS_T>
 {
   public:
-    HostRequestBank(unsigned int size) : RequestBank<MCCI_NODE_ADDRESS_T, MCCI_NODE_ADDRESS_T>(size) { };
-    
+    HostRequestBank(unsigned int size) : RequestBankOneKey<MCCI_NODE_ADDRESS_T, MCCI_NODE_ADDRESS_T>(size) { };
+
+    MCCI_NODE_ADDRESS_T get_key(MCCI_NODE_ADDRESS_T key_set) { return key_set; };
 };
 
 
 
-typedef struct
+class DblStuff
 {
+  public:
     int my1key;
     long my2key;
-} DblStuff;
+
+    DblStuff() {};
+    DblStuff(int k1, long k2) { my1key = k1; my2key = k2; };
+    ~DblStuff() {};
+    
+    friend ostream& operator << (ostream &os, const DblStuff& ds)
+    {
+        os << "(" << ds.my1key << ", " << ds.my2key << ")";
+        return os;
+    }
+};
 
 
 class DblStuffRequestBank: public RequestBankTwoKeys<DblStuff, int, long>
@@ -108,8 +146,8 @@ class DblStuffRequestBank: public RequestBankTwoKeys<DblStuff, int, long>
     DblStuffRequestBank(unsigned int size) : RequestBankTwoKeys<DblStuff, int, long>(size){ };
     virtual ~DblStuffRequestBank() { };
     
-    int  get_key_1(DblStuff const input) { return input.my1key; };
-    long get_key_2(DblStuff const input) { return input.my2key; };
+    int  get_key_1(DblStuff const key_set) { return key_set.my1key; };
+    long get_key_2(DblStuff const key_set) { return key_set.my2key; };
 
     
 };
