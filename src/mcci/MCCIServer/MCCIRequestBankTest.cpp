@@ -11,4 +11,5 @@ int main()
 {
     DblStuffRequestBank b(1);
 
+    return 0;
 }
