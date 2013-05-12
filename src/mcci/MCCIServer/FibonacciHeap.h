@@ -68,15 +68,15 @@ template <typename Key, typename Data> class FibonacciHeapNode
 
 template <typename Key, typename Data> class FibonacciHeap 
 {
-    typedef FibonacciHeapNode<Key, Data> PNode;
+    typedef FibonacciHeapNode<Key, Data>* PNodePtr;
     
   protected:
     
-    PNode* m_root_with_min_key; // a circular d-list of nodes
+    PNodePtr m_root_with_min_key; // a circular d-list of nodes
     uint m_count;      // total number of elements in heap
     uint m_max_degree;  // maximum degree (=child count) of a root in the  circular d-list
     
-    PNode* insert_node(PNode* new_node);
+    PNodePtr insert_node(PNodePtr new_node);
     
   public:
     bool m_debug, m_debug_remove_min, m_debug_decrease_key;
@@ -87,12 +87,13 @@ template <typename Key, typename Data> class FibonacciHeap
     
     bool empty() const { return 0 == m_count; };
 
-    PNode* minimum() const;
+    PNodePtr minimum() const;
     void remove_minimum();
-    void remove(PNode* node, Key minus_infinity);
-    void decrease_key(PNode* node, Key new_key);
+    void remove(PNodePtr node, Key minus_infinity);
+    void decrease_key(PNodePtr node, Key new_key);
+    void alter_key(PNodePtr node, Key new_key, Key minus_infinity);
 
-    PNode* insert(Key k, Data d);	
+    PNodePtr insert(Key k, Data d);	
     void merge(const FibonacciHeap& other);
 
     void print_roots(ostream& out) const;
@@ -441,7 +442,27 @@ template <typename Key, typename Data>
     }
     m_max_degree = new_max_degree;
 }
-	
+
+
+
+template <typename Key, typename Data>
+    void FibonacciHeap<Key, Data>::alter_key(FibonacciHeapNode<Key, Data>* node,
+                                             Key new_key,
+                                             Key minus_infinity)
+{
+    // decrease key if new key is less
+    if (new_key < node->m_key)
+        decrease_key(node, new_key);
+
+    // remove and re-insert if new key is more
+    if (new_key > node->m_key)
+    {
+        remove(node, minus_infinity);
+        node->m_key = new_key;
+        insert_node(node);
+    }
+}
+
 
 template <typename Key, typename Data>
     void FibonacciHeap<Key, Data>::decrease_key(FibonacciHeapNode<Key, Data>* node, Key new_key) 
@@ -457,7 +478,7 @@ template <typename Key, typename Data>
     }
     // Update the key and possibly the min key:
     node->m_key = new_key;
-
+    
     // Check if the new key violates the heap invariant:
     FibonacciHeapNode<Key, Data>* parent = node->m_parent;
     if (!parent) 
