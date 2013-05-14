@@ -58,8 +58,9 @@ class CMCCIServer
     
     unsigned int client_free_requests_remote(MCCI_CLIENT_ID_T client_id)
     { return m_settings.max_remote_requests - m_outstanding_requests_remote[client_id]; }
-    
-    
+
+    // remove all expired requests and update the outstanding_requests counters appropriately
+    int enforce_timeouts();
     
   protected:
 
