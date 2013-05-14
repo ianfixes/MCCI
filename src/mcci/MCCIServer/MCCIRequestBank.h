@@ -22,6 +22,7 @@ using namespace std;
 template<typename KeySet>
 class RequestBank
 {
+  public:
     typedef struct
     {
         KeySet key_set;
@@ -32,7 +33,7 @@ class RequestBank
 
     typedef map<MCCI_CLIENT_ID_T, HeapNode*> SubscriptionMap;
 
-    typedef typename SubscriptionMap::iterator SubscriptionMapIterator;
+    typedef typename SubscriptionMap::const_iterator SubscriptionMapIterator;
     
   private:
     unsigned int* m_outstanding_requests;
@@ -42,14 +43,14 @@ class RequestBank
   public:
     RequestBank(unsigned int size, unsigned int max_client_id)
     {
-        this->m_outstanding_requests = new unsigned int[size]();
-        this->on_init(size, max_client_id);  // delegate
+        this->m_outstanding_requests = new unsigned int[max_client_id]();
+        this->on_init(size);  // delegate
     }
     
     virtual ~RequestBank() { delete[] this->m_outstanding_requests; }
     
     // developer tool to check sanity of a RequestBank
-    virtual bool check_sanity() const = 0;
+    //virtual bool check_sanity() const = 0;
     
     // add (OR UPDATE) an entry in the request bank
     int add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
@@ -62,7 +63,7 @@ class RequestBank
             LookupSet l;
             l.key_set = key_set;
             l.client_id = client_id;
-            n = new HeapNode(timeout, l);
+            n = new HeapNode(timeout, l); // ALLOCATE memory
 
             if (!n)
                 throw string("Couldn't allocate memory for new node");
@@ -98,7 +99,10 @@ class RequestBank
             throw string("Failed assertion that node->key == key->node");
 
         this->m_timeouts.remove(min, 0);
+        delete min;
+
         this->m_outstanding_reqeusts[min->data().client_id] -= 1;
+
     }
 
     
@@ -114,6 +118,7 @@ class RequestBank
         {
             this->m_outstanding_requests[it->first] =- 1;
             this->m_timeouts.remove(it->second, 0);
+            delete it->second;  // free the node that was removed
         }
 
         // remove all custom structure nodes in one shot
@@ -126,66 +131,49 @@ class RequestBank
         return this->get_by_fq(key_set, client_id);
     }
 
+    // does this structure contain the given key set?
+    bool contains(KeySet const key_set) const
+    {
+        return this->get_by_pq(key_set);
+    }
+    
     // number of open requests for a given client
     unsigned int get_outstanding_request_count(MCCI_CLIENT_ID_T client_id) const
     {
         return this->m_outstanding_requests[client_id];
     }
 
-
     
-    class subscriber_iterator : public std::iterator<std::input_iterator_tag, MCCI_CLIENT_ID_T>
+    // iterator class that just covers the client ids -- the keys
+    class subscriber_iterator : public SubscriptionMapIterator
     {
-
-        SubscriptionMapIterator it;
-        
       public:
-        
-        //subscriber_iterator(MCCI_CLIENT_ID_T* x) : p(x) {}
-      subscriber_iterator(const subscriber_iterator& mit) : it(mit.it) {}
-        
-        subscriber_iterator& operator++()
-        {
-            ++it;
-            return *this;
-        }
+        subscriber_iterator() : SubscriptionMapIterator() {}
+        subscriber_iterator(SubscriptionMapIterator s) : SubscriptionMapIterator(s) {}
 
-        subscriber_iterator operator++(MCCI_CLIENT_ID_T)
-        {
-            subscriber_iterator tmp(*this);
-            operator++(); return tmp;
-        }
-        bool operator==(const subscriber_iterator& rhs) { return it == rhs.it; }
-        bool operator!=(const subscriber_iterator& rhs) { return it != rhs.it; }
+        MCCI_CLIENT_ID_T* operator->()
+        { return (MCCI_CLIENT_ID_T* const)&(SubscriptionMapIterator::operator->()->first); }
+        
         MCCI_CLIENT_ID_T operator*()
-        {
-            return it->first;
-        }
+        { return SubscriptionMapIterator::operator*().first; }
     };
 
-
-
-    subscriber_iterator begin(KeySet const key_set) const
+    // iteration points: begin
+    subscriber_iterator subscribers_begin(KeySet const key_set) const
     {
-        SubscriptionMapIterator it;
-        it = this->get_by_pq(key_set).begin();
-        if (!it) return NULL;
-        return &(it->first);
-    }
-    
-    subscriber_iterator end(KeySet const key_set) const
-    {
-        SubscriptionMapIterator it;
-        it = this->get_by_pq(key_set).end();
-        if (!it) return NULL;
-        return (&it->first);
+        return this->get_by_pq(key_set)->begin();
     }
 
+    // iteration points: begin
+    subscriber_iterator subscribers_end(KeySet const key_set) const
+    {
+        return this->get_by_pq(key_set)->end();
+    }
     
   protected:
 
     // perfom any implementation-specific init (probably involving the size arg)
-    virtual void on_init(unsigned int size, unsigned int max_client_id) {}
+    virtual void on_init(unsigned int size) {}
     
     // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
     // (fully-qualified information means key set and client id)
@@ -194,53 +182,103 @@ class RequestBank
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
     virtual SubscriptionMap* get_by_pq(KeySet const key_set) = 0;
     
-    // return a pointer 
-    
     // assume that this entry is unique and add it to the structure
-    virtual int add_only(KeySet const key_set,
-                         MCCI_CLIENT_ID_T client_id,
-                         HeapNode* const node_ptr) = 0;
+    virtual int add_by_fq(KeySet const key_set,
+                          MCCI_CLIENT_ID_T client_id,
+                          HeapNode* const node_ptr) = 0;
 
     // remove a node from the custom container (not the heap) based on its key
     virtual HeapNode* remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) = 0;
 
-    // remove a partially-qualified set of nodes from the custom container
+    // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
     virtual void remove_by_pq(KeySet const key_set) = 0;
 
 };
 
 
 
+// class that stores requests using a single key into a linear hash
 template<typename KeySet, typename Key1>
     class RequestBankOneKey : public RequestBank<KeySet>
 {
 
+    typedef typename RequestBank<KeySet>::HeapNode HeapNode;
+    typedef typename RequestBank<KeySet>::SubscriptionMap SubscriptionMap;
+    typedef typename RequestBank<KeySet>::subscriber_iterator subscriber_iterator;
+        
   protected:
-    LinearHash<Key1,
-               map<MCCI_CLIENT_ID_T,
-                   FibonacciHeapNode<MCCI_TIME_T, KeySet>* > > m_bank;
-
-
+    LinearHash<Key1, SubscriptionMap*> m_bank;
 
   public:
     RequestBankOneKey(unsigned int size, unsigned int max_clients)
-        : RequestBank<KeySet>(size, max_clients) { m_bank.resize_nearest_prime(size); }
+        : RequestBank<KeySet>(size, max_clients) {}
+    
     virtual ~RequestBankOneKey() {}
-       
-    virtual Key1 get_key(KeySet const key_set) = 0;
 
-    int add_only(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
+    virtual void on_init(unsigned int size) { m_bank.resize_nearest_prime(size); }
+
+    // default behavior: Key1 is also KeySet
+    virtual Key1 get_key(KeySet const key_set) { return key_set; }
+
+    // assume that this entry is unique and add it to the structure
+    virtual int add_by_fq(KeySet const key_set,
+                          MCCI_CLIENT_ID_T client_id,
+                          HeapNode* const node_ptr)
     {
         Key1 k = this->get_key(key_set);
 
-        FibonacciHeapNode<MCCI_TIME_T, KeySet>* new_node;
+        // init hash entry if it doesn't exist 
+        if (!m_bank.has_key(k)) m_bank[k] = new SubscriptionMap();
 
-        new_node = new FibonacciHeapNode<MCCI_TIME_T, KeySet>();
-
-        
+        (*m_bank[k])[client_id] = node_ptr;  // add to map
         
         return 0;  // OK
     }
+
+    
+    // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
+    // (fully-qualified information means key set and client id)
+    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
+    {
+        Key1 k = this->get_key(key_set);
+        
+        if (!m_bank.has_key(k)) return NULL;
+        if (m_bank[k]->find(client_id) == m_bank[k]->end()) return NULL;
+
+        return (*m_bank[k])[client_id];
+    }
+
+    // return a pointer to a client_id -> heapnode map based on the partially-qualified info
+    virtual SubscriptionMap* get_by_pq(KeySet const key_set)
+    {
+        return m_bank[this->get_key(key_set)];
+    }
+    
+
+    // remove a node from the custom container (not the heap) based on its key
+    virtual HeapNode* remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
+    {
+        Key1 k = this->get_key(key_set);
+        SubscriptionMap* m = m_bank[k];
+        
+        m->erase(client_id);
+        
+        if (m->empty)
+        {
+            delete m;
+            m_bank[k] = NULL;
+        }
+    }
+
+    // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
+    virtual void remove_by_pq(KeySet const key_set)
+    {
+        Key1 k = this->get_key(key_set);
+        delete m_bank[k];
+        m_bank[k] = NULL;
+    }
+
+
 };
 
 
@@ -276,16 +314,9 @@ template<typename KeySet, typename Key1, typename Key2>
 };
 
 
+typedef RequestBankOneKey<MCCI_NODE_ADDRESS_T, MCCI_NODE_ADDRESS_T> HostRequestBank;
+typedef RequestBankOneKey<MCCI_VARIABLE_T, MCCI_VARIABLE_T> VariableRequestBank;
 
-
-class HostRequestBank : public RequestBankOneKey<MCCI_NODE_ADDRESS_T, MCCI_NODE_ADDRESS_T>
-{
-  public:
-    HostRequestBank(unsigned int size, unsigned int max_clients)
-      : RequestBankOneKey<MCCI_NODE_ADDRESS_T, MCCI_NODE_ADDRESS_T>(size, max_clients) { }
-
-    MCCI_NODE_ADDRESS_T get_key(MCCI_NODE_ADDRESS_T key_set) { return key_set; }
-};
 
 
 
