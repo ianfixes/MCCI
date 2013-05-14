@@ -119,18 +119,25 @@ template <typename Key, typename Data> class LinearHash
         return this->m_size;
     }
 
-    
+
     // return the number of elements in the hash table
     unsigned int count() const
     {
         unsigned int sum = 0;
 
+        // TODO: track it differently so its O(1)
         for (unsigned int i = 0; i < this->m_size; ++i)
             sum += this->m_container[i].size();
 
         return sum;
     }
 
+
+    // return whether the table is empty
+    bool empty() const
+    {
+        return 0 == this->count();
+    }
     
     // get the maximum key collisions on any given bucket
     unsigned int max_collisions() const
