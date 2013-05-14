@@ -229,7 +229,6 @@ template <typename Key, typename Data> class LinearHash
             }
 
             // point to end if we don't find anything
-            this->h->m_container[this->h->m_size - 1];
             this->ci = this->h->m_container[this->h->m_size - 1].end();
             return *this;
         }
