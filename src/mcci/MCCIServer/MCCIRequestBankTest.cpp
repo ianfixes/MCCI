@@ -9,7 +9,7 @@ using namespace std;
 
 int main()
 {
-    DblStuffRequestBank b(1);
+    DblStuffRequestBank b(1, 100, 100);
 
     return 0;
 }

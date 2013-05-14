@@ -41,10 +41,9 @@ class RequestBank
     
 
   public:
-    RequestBank(unsigned int size, unsigned int max_client_id)
+    RequestBank(unsigned int max_client_id)
     {
         this->m_outstanding_requests = new unsigned int[max_client_id]();
-        this->on_init(size);  // delegate
     }
     
     virtual ~RequestBank() { delete[] this->m_outstanding_requests; }
@@ -172,9 +171,6 @@ class RequestBank
     
   protected:
 
-    // perfom any implementation-specific init (probably involving the size arg)
-    virtual void on_init(unsigned int size) {}
-    
     // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
     // (fully-qualified information means key set and client id)
     virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) = 0;
@@ -207,18 +203,25 @@ template<typename KeySet>
     typedef typename RequestBank<KeySet>::subscriber_iterator subscriber_iterator;
         
   protected:
-    LinearHash<KeySet, SubscriptionMap*> m_bank;
+    typedef LinearHash<KeySet, SubscriptionMap*> LinearHashBank;
+    typedef typename LinearHashBank::iterator LinearHashBankIterator;
+    
+    LinearHashBank m_bank;
 
   public:
-    RequestBankOneKey(unsigned int size, unsigned int max_clients)
-        : RequestBank<KeySet>(size, max_clients) {}
+      RequestBankOneKey(unsigned int max_clients, unsigned int size)
+          : RequestBank<KeySet>(max_clients)
+    {
+        m_bank.resize_nearest_prime(size);
+    }
     
     virtual ~RequestBankOneKey()
     {
-        //FIXME: write destructor, free all map objects that exist in LinearHash.
+        // free all map objects that exist in LinearHashBank.
+        for (LinearHashBankIterator it = m_bank.begin(); it != m_bank.end(); ++it)
+            if (NULL != it->second)
+                delete it->second;
     }
-
-    virtual void on_init(unsigned int size) { m_bank.resize_nearest_prime(size); }
 
     // assume that this entry is unique and add it to the structure
     virtual int add_by_fq(KeySet const k,
@@ -288,20 +291,37 @@ template<typename KeySet, typename Key1, typename Key2>
 
     typedef LinearHash<Key2, SubscriptionMap*> LinearHashKey2;
     typedef LinearHash<Key1, LinearHashKey2> LinearHashKey1;
+
+    typedef typename LinearHashKey2::iterator LinearHashKey2Iterator;
+    typedef typename LinearHashKey1::iterator LinearHashKey1Iterator;
     
   protected:
     LinearHashKey1 m_bank;
+    unsigned int m_num_key1;
+    unsigned int m_num_key2;
 
   public:
-    RequestBankTwoKeys(unsigned int size, unsigned int max_clients)
-      : RequestBank<KeySet>(size, max_clients) {}
+    RequestBankTwoKeys(unsigned int max_clients, unsigned int num_key1, unsigned int num_key2)
+        : RequestBank<KeySet>(max_clients)
+    {
+        this->m_num_key1 = num_key1;
+        this->m_num_key2 = num_key2;
+        this->m_bank.resize_nearest_prime(this->m_num_key1);
+    }
     
     virtual Key1 get_key_1(KeySet const key_set) = 0;
     virtual Key2 get_key_2(KeySet const key_set) = 0;
 
     virtual ~RequestBankTwoKeys()
     {
-        //FIXME: write destructor, free all map objects that exist in LinearHash.
+        LinearHashKey1Iterator it1;
+        LinearHashKey2Iterator it2;
+        
+        // free all map objects that exist in LinearHash.
+        for (it1 = m_bank.begin(); it1 != m_bank.end(); ++it1)
+            for (it2 = m_bank[it1->first].begin(); it2 != m_bank[it1->first].end(); ++it2)
+                if (NULL != it2->second)
+                    delete it2->second;
     }
 
     virtual void on_init(unsigned int size) {
@@ -316,6 +336,7 @@ template<typename KeySet, typename Key1, typename Key2>
         Key2 k2 = this->get_key_2(key_set);
 
         // init hash entry if it doesn't exist 
+        if (!m_bank.has_key(k1)) m_bank[k1].resize_nearest_prime(this->m_num_key2);
         if (!m_bank[k1].has_key(k2)) m_bank[k1][k2] = new SubscriptionMap();
         if (NULL == m_bank[k1][k2]) throw string("Couldn't allocate new SubscriptionMap");
         (*m_bank[k1][k2])[client_id] = node_ptr;  // add to map
@@ -356,8 +377,14 @@ template<typename KeySet, typename Key1, typename Key2>
         {
             delete m;
             m_bank[k1][k2] = NULL;
+            m_bank[k1].remove(k2);
         }
 
+        if (m_bank[k1].empty())
+        {
+            m_bank.remove(k1);
+        }
+        
         return ret;
     }
 
@@ -397,8 +424,8 @@ class DblStuff
 class DblStuffRequestBank: public RequestBankTwoKeys<DblStuff, int, long>
 {
   public:
-    DblStuffRequestBank(unsigned int size, unsigned int max_clients)
-        : RequestBankTwoKeys<DblStuff, int, long>(size, max_clients){ }
+  DblStuffRequestBank(unsigned int max_clients, unsigned int num_key1s, unsigned int num_key2s)
+      : RequestBankTwoKeys<DblStuff, int, long>(max_clients, num_key1s, num_key2s) { }
     virtual ~DblStuffRequestBank() { }
     
     int  get_key_1(DblStuff const key_set) { return key_set.my1key; }
