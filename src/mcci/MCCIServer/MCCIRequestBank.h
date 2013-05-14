@@ -1,16 +1,6 @@
 
 #pragma once
 
-/*
-
-  RequestBank functions to implement
-
-  - peek(key) // all clients
-  
-
-
- */
-
 #include "MCCITypes.h"
 #include "LinearHash.h"
 #include "FibonacciHeap.h"
@@ -19,20 +9,30 @@
 
 using namespace std;
 
+/**
+   This templated base class defines a set of requests that can be added by a
+   given key (key set, implementation depending), and removed both by the key 
+   and by the passing of time.  the number of open requests per subscriber is
+   tracked.
+ */
 template<typename KeySet>
 class RequestBank
 {
   public:
+    // convenience struct to hold the fully-qualifying lookup information
     typedef struct
     {
         KeySet key_set;
         MCCI_CLIENT_ID_T client_id;
     } LookupSet;
-    
+
+    // holds the time-sensitive view of the data
     typedef FibonacciHeapNode<MCCI_TIME_T, LookupSet> HeapNode;
 
+    // holds the subscription information
     typedef map<MCCI_CLIENT_ID_T, HeapNode*> SubscriptionMap;
 
+    // for iterating over subscriber information
     typedef typename SubscriptionMap::const_iterator SubscriptionMapIterator;
     
   private:
@@ -213,7 +213,10 @@ template<typename KeySet>
     RequestBankOneKey(unsigned int size, unsigned int max_clients)
         : RequestBank<KeySet>(size, max_clients) {}
     
-    virtual ~RequestBankOneKey() {}
+    virtual ~RequestBankOneKey()
+    {
+        //FIXME: write destructor, free all map objects that exist in LinearHash.
+    }
 
     virtual void on_init(unsigned int size) { m_bank.resize_nearest_prime(size); }
 
