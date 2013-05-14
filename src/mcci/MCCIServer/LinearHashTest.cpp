@@ -17,7 +17,8 @@ void test_hash_size(unsigned int desired)
 
 int main()
 {
-    LinearHash<unsigned long, string> lh(101);
+    typedef LinearHash<unsigned long, string> NumberHash;
+    NumberHash lh(101);
 
     test_hash_size(0);
     test_hash_size(1);
@@ -40,6 +41,13 @@ int main()
 
     printf("\nExpect 3 elements in hash, count() = %d", lh.count());
 
+    NumberHash::iterator it;
+    printf("\nIterating:");
+    for (it = lh.begin(); it != lh.end(); ++it)
+    {
+        printf("\n    %ld\t: '%s'", it->first, it->second.c_str());
+    }
+
     printf("\n3001 in hash? %d", lh.has_key(3001));
     printf("\n3000 in hash? %d", lh.has_key(3000));
     printf("\nValue of 3000 is %s", lh[3000].c_str());
@@ -47,6 +55,9 @@ int main()
     lh.remove(3000);
     printf("\nRemoved 3000.  3000 in hash? %d", lh.has_key(3000));
     printf("\nhash[3000] = %s", lh[3000].c_str());
+    printf("\nauto-added null 3000 after access? %d", lh.has_key(3000));
+    if (lh.has_key(3000)) lh.remove(3000);
+
     
     printf("\n");
 
@@ -60,11 +71,17 @@ int main()
     // demonstrating that we only get collisions when step size = hash table size
     for (int step = 0; step < 6; ++step)
     {
-        printf("\n\nClearing, to insert 303 elements, step size = %d", (step * 20 + 1));
+        int inc = step * 20 + 1;
+        printf("\n\nClearing, to insert 303 elements, step size = %d", inc);
         lh.clear();
-        
+
         for (int i = 0; i < 303; ++i)
-            lh.insert((step * 20 + 1) * i, "hello");
+            lh.insert(inc * i, "hello");
+
+        printf("\nContents: ");
+        for (LinearHash<unsigned long, string>::iterator it = lh.begin(); it != lh.end(); ++it)
+            printf(" %ld", it->first);
+              
         
         printf("\nCount is now %d, max_collisions is %d", lh.count(), lh.max_collisions());
     }

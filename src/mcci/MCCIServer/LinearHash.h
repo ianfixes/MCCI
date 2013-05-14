@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <stdio.h>
 
 using namespace std;
 
@@ -42,11 +43,20 @@ static unsigned int LINEAR_HASH_TABLE_PRIMES[] = {
 template <typename Key, typename Data> class LinearHash
 {
 
-  protected:
-    // to deal with collisions, we use a map (implemented as a tree usually). initialize an array of trees
-    map <Key, Data>* m_container;
+  public:
+    // to deal with collisions, we use a map (implemented as a RB tree, usually)
+    typedef map<Key, Data> Container;
+    typedef typename Container::iterator ContainerIterator;
+
     
+  protected:
+    
+    // internal storage is an array of trees
+    Container* m_container;
+
+    // the number of trees in our hash
     unsigned int m_size;
+
     
   public:
 
@@ -81,7 +91,7 @@ template <typename Key, typename Data> class LinearHash
         if (this->m_size) delete[] this->m_container;
 
         this->m_size = size;
-        this->m_container = new map<Key, Data>[this->m_size]();
+        this->m_container = new Container[this->m_size]();
         
     }
 
@@ -150,7 +160,7 @@ template <typename Key, typename Data> class LinearHash
 
     
     // check existence of a hashed value
-    bool has_key(Key k)
+    bool has_key(Key k) const
     {
         unsigned int idx = k % this->m_size;
         return this->m_container[idx].end() != this->m_container[idx].find(k);
@@ -170,5 +180,97 @@ template <typename Key, typename Data> class LinearHash
         for (int i = 0; i < this->m_size; ++i)
             this->m_container[i].clear();
     }
-    
+
+
+    class iterator : public std::iterator<std::input_iterator_tag, pair<Key, Data> >
+    {
+        LinearHash<Key, Data>* h;
+        unsigned int idx;
+        ContainerIterator ci;
+
+      public:
+
+        iterator() {};
+        
+        iterator(LinearHash<Key, Data>* h, unsigned int idx, ContainerIterator ci)
+        {
+            this->h = h;
+            this->idx = idx;
+            this->ci = ci;
+        }
+
+        iterator(const iterator& it)
+        {
+            this->operator=(it);
+        }
+
+        iterator& operator=(const iterator &rhs)
+        {
+            this->h = rhs.h;
+            this->idx = rhs.idx;
+            this->ci = rhs.ci;
+        }
+        
+        iterator& operator++()
+        {
+            // increment individual tree pointer, or jump to next un-vacant tree
+            if (this->h->m_container[this->idx].end() != ++(this->ci)) return *this;
+
+            for (++(this->idx); this->idx < this->h->m_size; ++(this->idx))
+            {
+                //fprintf(stderr, "\ntrying tree %d of %d", this->idx, this->h->m_size - 1);
+                if (!this->h->m_container[this->idx].empty())
+                {
+                    this->ci = this->h->m_container[this->idx].begin();
+                    return *this;
+                }
+            }
+
+            // point to end if we don't find anything
+            this->h->m_container[this->h->m_size - 1];
+            this->ci = this->h->m_container[this->h->m_size - 1].end();
+            return *this;
+        }
+
+        iterator operator++(int)
+        {
+            iterator tmp(*this);
+            this->operator++();
+            return tmp;
+        }
+
+        bool operator==(const iterator& rhs)
+        {
+            return rhs.h == this->h && rhs.idx == this->idx && rhs.ci == this->ci;
+        }
+
+        bool operator!=(const iterator& rhs)
+        {
+            return rhs.h != this->h || rhs.idx != this->idx || (!(rhs.ci == this->ci));
+        }
+
+        pair<const Key, Data> operator*() { return *(this->ci); }
+
+        pair<const Key, Data>* operator->() { return &(*(this->ci)); }
+
+        
+    };
+
+    // iteration points: begin
+    iterator begin()
+    {
+        for (unsigned int i = 0; i < this->m_size; ++i)
+            if (!this->m_container[i].empty())
+                return iterator(this, i, this->m_container[i].begin());
+
+        return this->end();
+    }
+
+    // iteration points: end
+    iterator end()
+    {
+        unsigned int last = this->m_size - 1;
+        return iterator(this, last + 1, this->m_container[last].end());
+    }
+
 };
