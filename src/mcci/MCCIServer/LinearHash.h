@@ -209,6 +209,8 @@ template <typename Key, typename Data> class LinearHash
             this->h = rhs.h;
             this->idx = rhs.idx;
             this->ci = rhs.ci;
+
+            return *this;
         }
         
         iterator& operator++()
