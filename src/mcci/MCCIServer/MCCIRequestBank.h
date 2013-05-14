@@ -251,14 +251,17 @@ template<typename KeySet>
     virtual HeapNode* remove_by_fq(KeySet const k, MCCI_CLIENT_ID_T client_id)
     {
         SubscriptionMap* m = m_bank[k];
+        HeapNode* ret = (*m_bank[k])[client_id];
         
         m->erase(client_id);
         
-        if (m->empty)
+        if (m->empty())
         {
             delete m;
             m_bank[k] = NULL;
         }
+        
+        return ret;
     }
 
     // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
@@ -279,28 +282,93 @@ typedef RequestBankOneKey<MCCI_VARIABLE_T> VariableRequestBank;
 template<typename KeySet, typename Key1, typename Key2>
     class RequestBankTwoKeys : public RequestBank<KeySet>
 {
+    typedef typename RequestBank<KeySet>::HeapNode HeapNode;
+    typedef typename RequestBank<KeySet>::SubscriptionMap SubscriptionMap;
+    typedef typename RequestBank<KeySet>::subscriber_iterator subscriber_iterator;
 
+    typedef LinearHash<Key2, SubscriptionMap*> LinearHashKey2;
+    typedef LinearHash<Key1, LinearHashKey2> LinearHashKey1;
+    
   protected:
-
-//    LinearHash<Key2,
-//        (map<MCCI_CLIENT_ID_T,
-//         (FibonacciHeapNode<MCCI_TIME_T, KeySet>*) > ) > m_bank;
-
+    LinearHashKey1 m_bank;
 
   public:
     RequestBankTwoKeys(unsigned int size, unsigned int max_clients)
       : RequestBank<KeySet>(size, max_clients) {}
-    virtual ~RequestBankTwoKeys() {}
     
     virtual Key1 get_key_1(KeySet const key_set) = 0;
     virtual Key2 get_key_2(KeySet const key_set) = 0;
 
-    int add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
+    virtual ~RequestBankTwoKeys()
+    {
+        //FIXME: write destructor, free all map objects that exist in LinearHash.
+    }
+
+    virtual void on_init(unsigned int size) {
+    m_bank.resize_nearest_prime(size); }
+
+    // assume that this entry is unique and add it to the structure
+    virtual int add_by_fq(KeySet const key_set,
+                          MCCI_CLIENT_ID_T client_id,
+                          HeapNode* const node_ptr)
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
 
-        return k1 != 0 && k2 != 0;
+        // init hash entry if it doesn't exist 
+        if (!m_bank[k1].has_key(k2)) m_bank[k1][k2] = new SubscriptionMap();
+        if (NULL == m_bank[k1][k2]) throw string("Couldn't allocate new SubscriptionMap");
+        (*m_bank[k1][k2])[client_id] = node_ptr;  // add to map
+        return 0;  // OK
+    }
+    
+    // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
+    // (fully-qualified information means key set and client id)
+    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
+    {
+        Key1 k1 = this->get_key_1(key_set);
+        Key2 k2 = this->get_key_2(key_set);
+        if (!m_bank.has_key(k1)) return NULL;
+        if (!m_bank[k1].has_key(k2)) return NULL;
+        if (m_bank[k1][k2]->find(client_id) == m_bank[k1][k2]->end()) return NULL;
+        return (*m_bank[k1][k2])[client_id];
+    }
+
+    // return a pointer to a client_id -> heapnode map based on the partially-qualified info
+    virtual SubscriptionMap* get_by_pq(KeySet const key_set)
+    {
+        Key1 k1 = this->get_key_1(key_set);
+        Key2 k2 = this->get_key_2(key_set);
+        return m_bank[k1][k2];
+    }
+
+    // remove a node from the custom container (not the heap) based on its key
+    virtual HeapNode* remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
+    {
+        Key1 k1 = this->get_key_1(key_set);
+        Key2 k2 = this->get_key_2(key_set);
+        SubscriptionMap* m = m_bank[k1][k2];
+        HeapNode* ret = (*m_bank[k1][k2])[client_id];
+        
+        m->erase(client_id);
+        
+        if (m->empty())
+        {
+            delete m;
+            m_bank[k1][k2] = NULL;
+        }
+
+        return ret;
+    }
+
+    // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
+    virtual void remove_by_pq(KeySet const key_set)
+    {
+        Key1 k1 = this->get_key_1(key_set);
+        Key2 k2 = this->get_key_2(key_set);
+
+        delete m_bank[k1][k2];
+        m_bank[k1][k2] = NULL;
     }
 };
 
