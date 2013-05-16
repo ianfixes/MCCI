@@ -192,9 +192,14 @@ class RequestBank
 };
 
 
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+
 
 // class that stores requests using a single key into a linear hash
-template<typename KeySet>
+template<typename KeySet, typename Key>
     class RequestBankOneKey : public RequestBank<KeySet>
 {
 
@@ -203,14 +208,17 @@ template<typename KeySet>
     typedef typename RequestBank<KeySet>::subscriber_iterator subscriber_iterator;
         
   protected:
-    typedef LinearHash<KeySet, SubscriptionMap*> LinearHashBank;
+    typedef LinearHash<Key, SubscriptionMap*> LinearHashBank;
     typedef typename LinearHashBank::iterator LinearHashBankIterator;
     
     LinearHashBank m_bank;
 
   public:
-      RequestBankOneKey(unsigned int max_clients, unsigned int size)
-          : RequestBank<KeySet>(max_clients)
+    
+    virtual Key get_key(KeySet const key_set) = 0; //{ return (Key)key_set; };
+    
+    RequestBankOneKey(unsigned int max_clients, unsigned int size)
+      : RequestBank<KeySet>(max_clients)
     {
         m_bank.resize_nearest_prime(size);
     }
@@ -224,10 +232,12 @@ template<typename KeySet>
     }
 
     // assume that this entry is unique and add it to the structure
-    virtual int add_by_fq(KeySet const k,
+    virtual int add_by_fq(KeySet const key_set,
                           MCCI_CLIENT_ID_T client_id,
                           HeapNode* const node_ptr)
     {
+        Key k = this->get_key(key_set);
+        
         // init hash entry if it doesn't exist 
         if (!m_bank.has_key(k)) m_bank[k] = new SubscriptionMap();
         if (NULL == m_bank[k]) throw string("Couldn't allocate new SubscriptionMap");
@@ -237,22 +247,26 @@ template<typename KeySet>
     
     // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
     // (fully-qualified information means key set and client id)
-    virtual HeapNode* get_by_fq(KeySet const k, MCCI_CLIENT_ID_T client_id)
+    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
     {
+        Key k = this->get_key(key_set);
+        
         if (!m_bank.has_key(k)) return NULL;
         if (m_bank[k]->find(client_id) == m_bank[k]->end()) return NULL;
         return (*m_bank[k])[client_id];
     }
 
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
-    virtual SubscriptionMap* get_by_pq(KeySet const k)
+    virtual SubscriptionMap* get_by_pq(KeySet const key_set)
     {
-        return m_bank[this->get_key(k)];
+        return m_bank[this->get_key(key_set)];
     }
 
     // remove a node from the custom container (not the heap) based on its key
-    virtual HeapNode* remove_by_fq(KeySet const k, MCCI_CLIENT_ID_T client_id)
+    virtual HeapNode* remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
     {
+        Key k = this->get_key(key_set);
+        
         SubscriptionMap* m = m_bank[k];
         HeapNode* ret = (*m_bank[k])[client_id];
         
@@ -268,18 +282,17 @@ template<typename KeySet>
     }
 
     // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
-    virtual void remove_by_pq(KeySet const k)
+    virtual void remove_by_pq(KeySet const key_set)
     {
+        Key k = this->get_key(key_set);
+        
         delete m_bank[k];
         m_bank[k] = NULL;
     }
 };
 
 
-typedef RequestBankOneKey<MCCI_NODE_ADDRESS_T> HostRequestBank;
-typedef RequestBankOneKey<MCCI_VARIABLE_T> VariableRequestBank;
-
-
+////////////////////////////////////////////////////////////////////////////////
 
 
 template<typename KeySet, typename Key1, typename Key2>
@@ -401,36 +414,4 @@ template<typename KeySet, typename Key1, typename Key2>
 
 
 
-
-
-class DblStuff
-{
-  public:
-    int my1key;
-    long my2key;
-
-    DblStuff() {}
-    DblStuff(int k1, long k2) { my1key = k1; my2key = k2; }
-    ~DblStuff() {}
-    
-    friend ostream& operator << (ostream &os, const DblStuff& ds)
-    {
-        os << "(" << ds.my1key << ", " << ds.my2key << ")";
-        return os;
-    }
-};
-
-
-class DblStuffRequestBank: public RequestBankTwoKeys<DblStuff, int, long>
-{
-  public:
-  DblStuffRequestBank(unsigned int max_clients, unsigned int num_key1s, unsigned int num_key2s)
-      : RequestBankTwoKeys<DblStuff, int, long>(max_clients, num_key1s, num_key2s) { }
-    virtual ~DblStuffRequestBank() { }
-    
-    int  get_key_1(DblStuff const key_set) { return key_set.my1key; }
-    long get_key_2(DblStuff const key_set) { return key_set.my2key; }
-
-    
-};
 

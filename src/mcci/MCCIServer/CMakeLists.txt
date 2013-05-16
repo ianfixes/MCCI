@@ -5,6 +5,7 @@ SET(MCCIServer_SRCS
   MCCITypes.h
   FibonacciHeap.h
   MCCIRequestBank.h
+  MCCIRequestBanks.h
   MCCITime.h
   MCCITime.cpp
   MCCIRevisionSet.h
