@@ -1,11 +1,15 @@
 #pragma once
 
-#include "MCCITime.h"
+#include <boost/cstdint.hpp>
 
-typedef unsigned int MCCI_VARIABLE_T;
-typedef unsigned int MCCI_NODE_ADDRESS_T;
-typedef unsigned int MCCI_REVISION_T;
-typedef unsigned int MCCI_CLIENT_ID_T;
+typedef uint16_t MCCI_VARIABLE_T;
+typedef uint16_t MCCI_NODE_ADDRESS_T;
+typedef uint32_t MCCI_REVISION_T;
+typedef uint16_t MCCI_CLIENT_ID_T;
+typedef uint32_t MCCI_TIME_T;
+
+#define MCCI_HOST_ANY ((uint16_t) -1)
+
 
 typedef struct
 {
