@@ -173,6 +173,13 @@ template <typename Key, typename Data> class LinearHash
         return this->m_container[idx].end() != this->m_container[idx].find(k);
     }
 
+
+    // read-only access
+    Data& operator[] (Key k) const
+    {
+        return this->m_container[k % this->m_size][k];
+    }
+    
     
     // array-style access to the hash
     Data& operator[] (Key k)
