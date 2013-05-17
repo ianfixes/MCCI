@@ -18,17 +18,19 @@ class SinglePassthruKeyRequestBank : public RequestBankOneKey<KeySet, KeySet>
     SinglePassthruKeyRequestBank(unsigned int max_clients, unsigned int size) :
     RequestBankOneKey<KeySet, KeySet>(max_clients, size) { }
 
-    virtual KeySet get_key(KeySet const key_set) { return key_set; }
+    virtual KeySet get_key(KeySet const key_set) const { return key_set; }
 };
 
+typedef SinglePassthruKeyRequestBank<MCCI_CLIENT_ID_T>    AllRequestBank;
 typedef SinglePassthruKeyRequestBank<MCCI_NODE_ADDRESS_T> HostRequestBank;
-typedef SinglePassthruKeyRequestBank<MCCI_VARIABLE_T> VariableRequestBank;
+typedef SinglePassthruKeyRequestBank<MCCI_VARIABLE_T>     VariableRequestBank;
+
 
 
 typedef struct {MCCI_NODE_ADDRESS_T host; MCCI_VARIABLE_T var;} HostVarPair;
 
 inline std::ostream& operator<<(std::ostream &out, HostVarPair const &rhs)
-{ return out << "(Host " << rhs.host << ", Var " << rhs.var; }
+{ return out << "(Host " << rhs.host << ", Var " << rhs.var << ")"; }
   
 
 class HostVariableRequestBank : public RequestBankOneKey<HostVarPair, uint32_t>
@@ -37,12 +39,11 @@ class HostVariableRequestBank : public RequestBankOneKey<HostVarPair, uint32_t>
     HostVariableRequestBank(unsigned int max_clients, unsigned int size) :
     RequestBankOneKey<HostVarPair, uint32_t>(max_clients, size) { }
 
-    virtual uint32_t get_key(HostVarPair key_set)
+    virtual uint32_t get_key(HostVarPair key_set) const
     {
         return (key_set.host << 16) + key_set.var;
     }
 };
-
 
 
 
@@ -71,11 +72,12 @@ class DblStuffRequestBank: public RequestBankTwoKeys<DblStuff, int, long>
       : RequestBankTwoKeys<DblStuff, int, long>(max_clients, num_key1s, num_key2s) { }
     virtual ~DblStuffRequestBank() { }
     
-    int  get_key_1(DblStuff const key_set) { return key_set.my1key; }
-    long get_key_2(DblStuff const key_set) { return key_set.my2key; }
+    int  get_key_1(DblStuff const key_set) const { return key_set.my1key; }
+    long get_key_2(DblStuff const key_set) const { return key_set.my2key; }
 
     
 };
+
 
 
 
