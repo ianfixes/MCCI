@@ -38,7 +38,7 @@ template <typename Key, typename Data> class FibonacciHeapNode
 
   public:
     FibonacciHeapNode() {};
-    
+
     FibonacciHeapNode(Key k, Data d);
 	
     // whether this is the only node in the ring
@@ -362,6 +362,7 @@ template <typename Key, typename Data>
         if (m_debug_remove_min) cout << "  removed the last" << endl;
         if (m_count != 0)
             throw string ("Internal error: should have 0 keys");
+        delete m_root_with_min_key;
         m_root_with_min_key = NULL;
         return;
     }
