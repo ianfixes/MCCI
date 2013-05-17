@@ -6,6 +6,7 @@
 #include "FibonacciHeap.h"
 #include <map>
 #include <list>
+#include <ostream>
 
 using namespace std;
 
@@ -26,18 +27,22 @@ class RequestBank
         MCCI_CLIENT_ID_T client_id;
     } LookupSet;
 
+    friend std::ostream& operator<<(std::ostream &out, LookupSet const &rhs)
+    { return out << "(key_set " << rhs.key_set << ", client_id " << rhs.client_id << ")"; }
+
+    
     // holds the time-sensitive view of the data
     typedef FibonacciHeapNode<MCCI_TIME_T, LookupSet> HeapNode;
 
     // holds the subscription information
     typedef map<MCCI_CLIENT_ID_T, HeapNode*> SubscriptionMap;
 
-    // for iterating over subscriber information
-    typedef typename SubscriptionMap::const_iterator SubscriptionMapIterator;
+    // for iterating over subscriber informationi
+    typedef typename SubscriptionMap::iterator SubscriptionMapIterator;
     
   private:
     unsigned int* m_outstanding_requests;
-    FibonacciHeap<MCCI_TIME_T, KeySet> m_timeouts;
+    FibonacciHeap<MCCI_TIME_T, LookupSet> m_timeouts;
     
 
   public:
@@ -54,7 +59,7 @@ class RequestBank
     // add (OR UPDATE) an entry in the request bank
     int add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
     {
-        HeapNode* n = this->get_node(key_set, client_id);
+        HeapNode* n = this->get_by_fq(key_set, client_id);
         
         // early exit for brand new nodes; just add them
         if (NULL == n)
@@ -62,12 +67,8 @@ class RequestBank
             LookupSet l;
             l.key_set = key_set;
             l.client_id = client_id;
-            n = new HeapNode(timeout, l); // ALLOCATE memory
 
-            if (!n)
-                throw string("Couldn't allocate memory for new node");
-
-            this->m_timeouts.insert_node(n);
+            n = this->m_timeouts.insert(timeout, l);
             int ret = this->add_by_fq(key_set, client_id, n);
             
             if (0 == ret)
@@ -100,7 +101,7 @@ class RequestBank
         this->m_timeouts.remove(min, 0);
         delete min;
 
-        this->m_outstanding_reqeusts[min->data().client_id] -= 1;
+        this->m_outstanding_requests[min->data().client_id] -= 1;
 
     }
 
@@ -150,10 +151,10 @@ class RequestBank
         subscriber_iterator() : SubscriptionMapIterator() {}
         subscriber_iterator(SubscriptionMapIterator s) : SubscriptionMapIterator(s) {}
 
-        MCCI_CLIENT_ID_T* operator->()
+        MCCI_CLIENT_ID_T* operator->() const
         { return (MCCI_CLIENT_ID_T* const)&(SubscriptionMapIterator::operator->()->first); }
         
-        MCCI_CLIENT_ID_T operator*()
+        MCCI_CLIENT_ID_T operator*() const
         { return SubscriptionMapIterator::operator*().first; }
     };
 
@@ -176,7 +177,7 @@ class RequestBank
     virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) = 0;
 
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
-    virtual SubscriptionMap* get_by_pq(KeySet const key_set) = 0;
+    virtual SubscriptionMap* get_by_pq(KeySet const key_set) const = 0;
     
     // assume that this entry is unique and add it to the structure
     virtual int add_by_fq(KeySet const key_set,
@@ -203,6 +204,7 @@ template<typename KeySet, typename Key>
     class RequestBankOneKey : public RequestBank<KeySet>
 {
 
+  public:
     typedef typename RequestBank<KeySet>::HeapNode HeapNode;
     typedef typename RequestBank<KeySet>::SubscriptionMap SubscriptionMap;
     typedef typename RequestBank<KeySet>::subscriber_iterator subscriber_iterator;
@@ -215,7 +217,7 @@ template<typename KeySet, typename Key>
 
   public:
     
-    virtual Key get_key(KeySet const key_set) = 0; //{ return (Key)key_set; };
+    virtual Key get_key(KeySet const key_set) const = 0; //{ return (Key)key_set; };
     
     RequestBankOneKey(unsigned int max_clients, unsigned int size)
       : RequestBank<KeySet>(max_clients)
@@ -257,7 +259,7 @@ template<typename KeySet, typename Key>
     }
 
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
-    virtual SubscriptionMap* get_by_pq(KeySet const key_set)
+    virtual SubscriptionMap* get_by_pq(KeySet const key_set) const
     {
         return m_bank[this->get_key(key_set)];
     }
@@ -298,17 +300,18 @@ template<typename KeySet, typename Key>
 template<typename KeySet, typename Key1, typename Key2>
     class RequestBankTwoKeys : public RequestBank<KeySet>
 {
+  public:
     typedef typename RequestBank<KeySet>::HeapNode HeapNode;
     typedef typename RequestBank<KeySet>::SubscriptionMap SubscriptionMap;
     typedef typename RequestBank<KeySet>::subscriber_iterator subscriber_iterator;
 
+  protected:
     typedef LinearHash<Key2, SubscriptionMap*> LinearHashKey2;
     typedef LinearHash<Key1, LinearHashKey2> LinearHashKey1;
 
     typedef typename LinearHashKey2::iterator LinearHashKey2Iterator;
     typedef typename LinearHashKey1::iterator LinearHashKey1Iterator;
     
-  protected:
     LinearHashKey1 m_bank;
     unsigned int m_num_key1;
     unsigned int m_num_key2;
@@ -322,8 +325,8 @@ template<typename KeySet, typename Key1, typename Key2>
         this->m_bank.resize_nearest_prime(this->m_num_key1);
     }
     
-    virtual Key1 get_key_1(KeySet const key_set) = 0;
-    virtual Key2 get_key_2(KeySet const key_set) = 0;
+    virtual Key1 get_key_1(KeySet const key_set) const = 0;
+    virtual Key2 get_key_2(KeySet const key_set) const = 0;
 
     virtual ~RequestBankTwoKeys()
     {
@@ -369,7 +372,7 @@ template<typename KeySet, typename Key1, typename Key2>
     }
 
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
-    virtual SubscriptionMap* get_by_pq(KeySet const key_set)
+    virtual SubscriptionMap* get_by_pq(KeySet const key_set) const
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
