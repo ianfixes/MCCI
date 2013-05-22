@@ -131,13 +131,13 @@ template <typename Key, typename Data>
     void FibonacciHeapNode<Key, Data>::insert(FibonacciHeapNode<Key, Data>* other) 
 {
     if (!other) return;
-            
+
     // For example: given 1->2->3->4->1, insert a->b->c->d->a after node 3:
     //	result: 1->2->3->a->b->c->d->4->1
-            
+
     this->m_next->m_previous = other->m_previous;
     other->m_previous->m_next = this->m_next;
-            
+
     this->m_next = other;
     other->m_previous = this;
 }
@@ -233,8 +233,6 @@ template <typename Key, typename Data>
         n = n->m_next;
     } 
     while (n != this);
-    
-    out << endl;
 }
 
 
@@ -261,15 +259,20 @@ template <typename Key, typename Data>
 template <typename Key, typename Data>
     FibonacciHeapNode<Key, Data>* FibonacciHeap<Key, Data>::insert_node(FibonacciHeapNode<Key, Data>* new_node) 
 {
-    //if (m_debug) cout << "insert " << (*new_node) << endl;
+    if (m_debug) cerr << "\ninsert_node";
     if (!m_root_with_min_key) 
-    { 
+    {
+        if (m_debug) cerr << " as new root";
         // insert the first m_key to the heap:
         m_root_with_min_key = new_node;
     } 
     else 
     {
+        if (m_debug) cerr << " into existing root";
+
+        m_root_with_min_key->print_all(cerr);
         m_root_with_min_key->insert(new_node);  // insert the root of new tree to the list of roots
+
         if (new_node->key() < m_root_with_min_key->key())
             m_root_with_min_key = new_node;
     }
@@ -289,11 +292,9 @@ template <typename Key, typename Data>
 template <typename Key, typename Data>
     void FibonacciHeap<Key, Data>::print_roots(ostream& out) const 
 {
-    out << "m_max_degree=" << m_max_degree << "  m_count=" << m_count << "  roots=";
+    out << "\nm_max_degree=" << m_max_degree << "  m_count=" << m_count << "  roots=";
     if (m_root_with_min_key)
         m_root_with_min_key->print_all(out);
-    else
-        out << endl;
 }
 
 
@@ -312,7 +313,7 @@ template <typename Key, typename Data>
 template <typename Key, typename Data>
     FibonacciHeapNode<Key, Data>* FibonacciHeap<Key, Data>::insert(Key k, Data d) 
 {
-    if (m_debug) cout << "insert " << d << ":" << k << endl;
+    if (m_debug) cerr << "\ninsert new " << d << ":" << k;
     ++m_count;
     // create a new tree with a single m_key:
     return insert_node(new FibonacciHeapNode<Key, Data>(k, d));
@@ -322,10 +323,11 @@ template <typename Key, typename Data>
 template <typename Key, typename Data>
     void FibonacciHeap<Key, Data>::remove_minimum() 
 {  // Fibonacci-Heap-Extract-Min, CONSOLIDATE
+
     if (!m_root_with_min_key)
         throw string("trying to remove from an empty heap");
 
-    if (this->m_debug) cout << "remove_minimum" << endl;
+    if (this->m_debug_remove_min) cerr << "\nremove_minimum";
     --m_count;
 
     /// Phase 1: Make all the removed root's children new roots:
@@ -334,8 +336,8 @@ template <typename Key, typename Data>
     {
         if (m_debug_remove_min) 
         {
-            cout << "  root's children: "; 
-            m_root_with_min_key->m_child->print_all(cout);
+            cerr << "\n  root's children: "; 
+            m_root_with_min_key->m_child->print_all(cerr);
         }
         FibonacciHeapNode<Key, Data>* c = m_root_with_min_key->m_child;
         do
@@ -348,28 +350,30 @@ template <typename Key, typename Data>
         m_root_with_min_key->m_child = NULL; // removed all children
         m_root_with_min_key->insert(c);
     }
-
+    
     if (m_debug_remove_min) 
     {
-        cout << "  roots after inserting children: "; 
-        print_roots(cout);
+        cerr << "\n  roots after inserting children: "; 
+        print_roots(cerr);
     }
-		
+
+    
 
     /// Phase 2-a: handle the case where we delete the last m_key:
     if (m_root_with_min_key->m_next == m_root_with_min_key) 
     {
-        if (m_debug_remove_min) cout << "  removed the last" << endl;
+        if (m_debug_remove_min) cerr << "\n  removed the last";
         if (m_count != 0)
             throw string ("Internal error: should have 0 keys");
         delete m_root_with_min_key;
         m_root_with_min_key = NULL;
+        if (m_debug_remove_min) cerr << "\n  removal complete";
         return;
     }
 
     /// Phase 2: merge roots with the same degree:
     vector<FibonacciHeapNode<Key, Data>*> degree_roots (m_max_degree + 1); // make room for a new degree
-    fill (degree_roots.begin(), degree_roots.end(), (FibonacciHeapNode<Key, Data>*)NULL);
+    fill(degree_roots.begin(), degree_roots.end(), (FibonacciHeapNode<Key, Data>*)NULL);
     m_max_degree = 0;
     FibonacciHeapNode<Key, Data>* current_pointer = m_root_with_min_key->m_next;
     uint current_degree;
@@ -378,12 +382,11 @@ template <typename Key, typename Data>
         current_degree = current_pointer->m_degree;
         if (m_debug_remove_min) 
         {
-            cout << "  roots starting from current_pointer: "; 
-            current_pointer->print_all(cout);
-            cout << "  checking root ";
-            current_pointer->print_node(cout);
-            cout << " with degree " 
-                 << current_degree << endl;
+            cerr << "\n  roots starting from current_pointer: "; 
+            current_pointer->print_all(cerr);
+            cerr << "  checking root ";
+            current_pointer->print_node(cerr);
+            cerr << " with degree " << current_degree;
         }
 
         FibonacciHeapNode<Key, Data>* current = current_pointer;
@@ -398,11 +401,10 @@ template <typename Key, typename Data>
             current->add_child(other);
             if (m_debug_remove_min)
             {
-                cout << "  added ";
-                other->print_node(cout);
-                cout << " as child of ";
-                current->print_node(cout);
-                cout << endl;
+                cerr << "  added ";
+                other->print_node(cerr);
+                cerr << " as child of ";
+                current->print_node(cerr);
             }
             degree_roots[current_degree] = NULL;
             ++current_degree;
@@ -422,14 +424,13 @@ template <typename Key, typename Data>
     uint new_max_degree = 0;
     for (uint d = 0; d < degree_roots.size(); ++d) 
     {
-        if (m_debug_remove_min) cout << "  degree " << d << ": ";
+        if (m_debug_remove_min) cerr << "\n  degree " << d << ": ";
         if (degree_roots[d]) 
         {
             if (m_debug_remove_min)
             {
-                cout << " ";
-                degree_roots[d]->print_node(cout);
-                cout << endl;
+                cerr << " ";
+                degree_roots[d]->print_node(cerr);
             }
             degree_roots[d]->m_next = degree_roots[d]->m_previous = degree_roots[d];
             insert_node(degree_roots[d]);
@@ -438,10 +439,11 @@ template <typename Key, typename Data>
         } 
         else 
         {
-            if (m_debug_remove_min) cout << "  no node" << endl;
+            if (m_debug_remove_min) cerr << "  no node";
         }
     }
     m_max_degree = new_max_degree;
+    if (m_debug_remove_min) cerr << "  removal complete";
 }
 
 
@@ -473,9 +475,9 @@ template <typename Key, typename Data>
 
     if (m_debug)
     {
-        cout << "decrease key of ";
-        node->print_node(cout);
-        cout << " to " << new_key << endl;
+        cerr << "\ndecrease key of ";
+        node->print_node(cerr);
+        cerr << " to " << new_key;
     }
     // Update the key and possibly the min key:
     node->m_key = new_key;
@@ -499,13 +501,12 @@ template <typename Key, typename Data>
         insert_node(node);
         if (m_debug_decrease_key) 
         {
-            cout << "  removed ";
-            node->print_node(cout);
-            cout << " as child of ";
-            parent->print_node(cout);
-            cout << endl;
-            cout << "  roots after remove: "; 
-            m_root_with_min_key->print_all(cout);
+            cerr << "\n  removed ";
+            node->print_node(cerr);
+            cerr << " as child of ";
+            parent->print_node(cerr);
+            cerr << "\n  roots after remove: "; 
+            m_root_with_min_key->print_all(cerr);
         }
 
         if (!parent->m_parent) 
