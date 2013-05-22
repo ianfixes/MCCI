@@ -49,6 +49,8 @@ class RequestBank
     RequestBank(unsigned int max_client_id)
     {
         this->m_outstanding_requests = new unsigned int[max_client_id]();
+        this->m_timeouts.m_debug_remove_min = true;
+        this->m_timeouts.m_debug = true;
     }
     
     virtual ~RequestBank() { delete[] this->m_outstanding_requests; }
@@ -57,10 +59,10 @@ class RequestBank
     //virtual bool check_sanity() const = 0;
     
     // add (OR UPDATE) an entry in the request bank
-    int add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
+    void add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
     {
         HeapNode* n = this->get_by_fq(key_set, client_id);
-        
+
         // early exit for brand new nodes; just add them
         if (NULL == n)
         {
@@ -69,12 +71,13 @@ class RequestBank
             l.client_id = client_id;
 
             n = this->m_timeouts.insert(timeout, l);
-            int ret = this->add_by_fq(key_set, client_id, n);
-            
-            if (0 == ret)
-                this->m_outstanding_requests[client_id] += 1; // add what wasn't there
+            if (!n) throw string("Couldn't insert new node");
 
-            return ret;
+            this->add_by_fq(key_set, client_id, n);
+            
+            this->m_outstanding_requests[client_id] += 1; // add what wasn't there
+
+            return;
         }
         
         // assert n->data().key_set == key_set
@@ -82,9 +85,10 @@ class RequestBank
         
         this->m_timeouts.alter_key(n, timeout, 0);
 
-        return 0;  // no action
+        return;  // no action
     }
 
+    bool empty() const { return this->m_timeouts.empty(); }
     
     // get the timeout of the node that will expire first
     MCCI_TIME_T minimum_timeout() const { return this->m_timeouts.minimum()->key(); }
@@ -92,17 +96,11 @@ class RequestBank
     // remove the request that's expiring first
     void remove_minimum()
     {
-        HeapNode* min   = this->m_timeouts.minimum();
-        HeapNode* keyed = this->remove_by_fq(min->data().key_set, min->data().client_id);
+        LookupSet l = this->m_timeouts.minimum()->data();
         
-        if (min != keyed)  // TODO: better assertion format?
-            throw string("Failed assertion that node->key == key->node");
-
-        this->m_timeouts.remove(min, 0);
-        delete min;
-
-        this->m_outstanding_requests[min->data().client_id] -= 1;
-
+        this->remove_by_fq(l.key_set, l.client_id);
+        this->m_outstanding_requests[l.client_id] -= 1;
+        this->m_timeouts.remove_minimum();
     }
 
     
@@ -174,18 +172,18 @@ class RequestBank
 
     // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
     // (fully-qualified information means key set and client id)
-    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) = 0;
+    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) const = 0;
 
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
     virtual SubscriptionMap* get_by_pq(KeySet const key_set) const = 0;
     
     // assume that this entry is unique and add it to the structure
-    virtual int add_by_fq(KeySet const key_set,
-                          MCCI_CLIENT_ID_T client_id,
-                          HeapNode* const node_ptr) = 0;
+    virtual void add_by_fq(KeySet const key_set,
+                           MCCI_CLIENT_ID_T client_id,
+                           HeapNode* const node_ptr) = 0;
 
     // remove a node from the custom container (not the heap) based on its key
-    virtual HeapNode* remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) = 0;
+    virtual void remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) = 0;
 
     // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
     virtual void remove_by_pq(KeySet const key_set) = 0;
@@ -234,27 +232,35 @@ template<typename KeySet, typename Key>
     }
 
     // assume that this entry is unique and add it to the structure
-    virtual int add_by_fq(KeySet const key_set,
-                          MCCI_CLIENT_ID_T client_id,
-                          HeapNode* const node_ptr)
+    virtual void add_by_fq(KeySet const key_set,
+                           MCCI_CLIENT_ID_T client_id,
+                           HeapNode* const node_ptr)
     {
         Key k = this->get_key(key_set);
-        
-        // init hash entry if it doesn't exist 
-        if (!m_bank.has_key(k)) m_bank[k] = new SubscriptionMap();
-        if (NULL == m_bank[k]) throw string("Couldn't allocate new SubscriptionMap");
+
+        // init hash entry if it doesn't exist
+        m_bank.has_key(k);
+        if (!m_bank.has_key(k))
+        {
+            m_bank[k] = new SubscriptionMap();
+            if (NULL == m_bank[k]) throw string("Couldn't allocate new SubscriptionMap");
+        }
+
         (*m_bank[k])[client_id] = node_ptr;  // add to map
-        return 0;  // OK
     }
     
     // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
     // (fully-qualified information means key set and client id)
-    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
+    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) const
     {
         Key k = this->get_key(key_set);
-        
+
         if (!m_bank.has_key(k)) return NULL;
+
+        if (NULL == m_bank[k]) throw string("Improper cleanup is happening");
+
         if (m_bank[k]->find(client_id) == m_bank[k]->end()) return NULL;
+
         return (*m_bank[k])[client_id];
     }
 
@@ -265,22 +271,13 @@ template<typename KeySet, typename Key>
     }
 
     // remove a node from the custom container (not the heap) based on its key
-    virtual HeapNode* remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
+    virtual void remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
     {
         Key k = this->get_key(key_set);
-        
-        SubscriptionMap* m = m_bank[k];
-        HeapNode* ret = (*m_bank[k])[client_id];
-        
-        m->erase(client_id);
-        
-        if (m->empty())
-        {
-            delete m;
-            m_bank[k] = NULL;
-        }
-        
-        return ret;
+        m_bank[k]->erase(client_id);
+
+        // clean up if the subscriber map is empty
+        if (m_bank[k]->empty()) this->remove_by_pq(key_set);
     }
 
     // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
@@ -290,6 +287,7 @@ template<typename KeySet, typename Key>
         
         delete m_bank[k];
         m_bank[k] = NULL;
+        m_bank.remove(k);
     }
 };
 
@@ -344,9 +342,9 @@ template<typename KeySet, typename Key1, typename Key2>
     m_bank.resize_nearest_prime(size); }
 
     // assume that this entry is unique and add it to the structure
-    virtual int add_by_fq(KeySet const key_set,
-                          MCCI_CLIENT_ID_T client_id,
-                          HeapNode* const node_ptr)
+    virtual void add_by_fq(KeySet const key_set,
+                           MCCI_CLIENT_ID_T client_id,
+                           HeapNode* const node_ptr)
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
@@ -361,7 +359,7 @@ template<typename KeySet, typename Key1, typename Key2>
     
     // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
     // (fully-qualified information means key set and client id)
-    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
+    virtual HeapNode* get_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id) const 
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
@@ -380,12 +378,11 @@ template<typename KeySet, typename Key1, typename Key2>
     }
 
     // remove a node from the custom container (not the heap) based on its key
-    virtual HeapNode* remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
+    virtual void remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
         SubscriptionMap* m = m_bank[k1][k2];
-        HeapNode* ret = (*m_bank[k1][k2])[client_id];
         
         m->erase(client_id);
         
@@ -401,7 +398,6 @@ template<typename KeySet, typename Key1, typename Key2>
             m_bank.remove(k1);
         }
         
-        return ret;
     }
 
     // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
