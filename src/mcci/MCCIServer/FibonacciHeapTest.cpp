@@ -40,24 +40,18 @@ void doTest()
     cout << endl << endl;
         
     vector <FibonacciHeapNode<uint, string>*> nodes(6);
-    nodes[0] = 
-        h.insert(400, "a");
-    nodes[1] = 
-        h.insert(200, "b");
-    nodes[2] = 
-        h.insert(70, "c");
-    nodes[3] = 
-        h.insert(50, "d");
-    nodes[4] = 
-        h.insert(10, "e");
-    nodes[5] = 
-        h.insert(80, "f");
+    nodes[0] = h.insert(400, "a");
+    nodes[1] = h.insert(200, "b");
+    nodes[2] = h.insert(70, "c");
+    nodes[3] = h.insert(50, "d");
+    nodes[4] = h.insert(10, "e");  // minimum
+    nodes[5] = h.insert(80, "f");
     h.print_roots(cout);
     print_min(&h);
         
     h.remove_minimum();
     print_min(&h);
-    nodes[4]=NULL;
+    nodes[4]=NULL;   // minimum was removed
     h.print_roots(cout);
         
     for (uint i = 0; i < nodes.size(); ++i) 
