@@ -268,9 +268,11 @@ template <typename Key, typename Data>
     } 
     else 
     {
-        if (m_debug) cerr << " into existing root";
-
-        m_root_with_min_key->print_all(cerr);
+        if (m_debug)
+        {
+            cerr << " into existing root";
+            m_root_with_min_key->print_all(cerr);
+        }
         m_root_with_min_key->insert(new_node);  // insert the root of new tree to the list of roots
 
         if (new_node->key() < m_root_with_min_key->key())
