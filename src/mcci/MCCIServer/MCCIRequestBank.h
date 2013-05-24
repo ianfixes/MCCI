@@ -37,20 +37,22 @@ class RequestBank
     // holds the subscription information
     typedef map<MCCI_CLIENT_ID_T, HeapNode*> SubscriptionMap;
 
-    // for iterating over subscriber informationi
+    // for iterating over subscriber information
     typedef typename SubscriptionMap::iterator SubscriptionMapIterator;
     
   private:
-    unsigned int* m_outstanding_requests;
+    unsigned int* m_outstanding_requests; // FIXME -- convert to vector
+    unsigned int m_max_client_id;
     FibonacciHeap<MCCI_TIME_T, LookupSet> m_timeouts;
-    
+
 
   public:
     RequestBank(unsigned int max_client_id)
     {
         this->m_outstanding_requests = new unsigned int[max_client_id]();
-        this->m_timeouts.m_debug_remove_min = true;
-        this->m_timeouts.m_debug = true;
+        this->m_max_client_id = max_client_id;
+        //this->m_timeouts.m_debug_remove_min = true;
+        //this->m_timeouts.m_debug = true;
     }
     
     virtual ~RequestBank() { delete[] this->m_outstanding_requests; }
@@ -61,6 +63,8 @@ class RequestBank
     // add (OR UPDATE) an entry in the request bank
     void add(KeySet const key_set, MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
     {
+        if (client_id > this->m_max_client_id) throw string("Client ID too high");
+         
         HeapNode* n = this->get_by_fq(key_set, client_id);
 
         // early exit for brand new nodes; just add them
@@ -220,13 +224,14 @@ template<typename KeySet, typename Key>
     RequestBankOneKey(unsigned int max_clients, unsigned int size)
       : RequestBank<KeySet>(max_clients)
     {
-        m_bank.resize_nearest_prime(size);
+        this->m_bank.resize_nearest_prime(size);
     }
     
     virtual ~RequestBankOneKey()
     {
         // free all map objects that exist in LinearHashBank.
-        for (LinearHashBankIterator it = m_bank.begin(); it != m_bank.end(); ++it)
+        LinearHashBankIterator it;
+        for (it = this->m_bank.begin(); it != this->m_bank.end(); ++it)
             if (NULL != it->second)
                 delete it->second;
     }
@@ -239,14 +244,14 @@ template<typename KeySet, typename Key>
         Key k = this->get_key(key_set);
 
         // init hash entry if it doesn't exist
-        m_bank.has_key(k);
-        if (!m_bank.has_key(k))
+        this->m_bank.has_key(k);
+        if (!this->m_bank.has_key(k))
         {
-            m_bank[k] = new SubscriptionMap();
-            if (NULL == m_bank[k]) throw string("Couldn't allocate new SubscriptionMap");
+            this->m_bank[k] = new SubscriptionMap();
+            if (NULL == this->m_bank[k]) throw string("Couldn't allocate new SubscriptionMap");
         }
 
-        (*m_bank[k])[client_id] = node_ptr;  // add to map
+        (*(this->m_bank[k]))[client_id] = node_ptr;  // add to map
     }
     
     // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
@@ -255,29 +260,29 @@ template<typename KeySet, typename Key>
     {
         Key k = this->get_key(key_set);
 
-        if (!m_bank.has_key(k)) return NULL;
+        if (!this->m_bank.has_key(k)) return NULL;
 
-        if (NULL == m_bank[k]) throw string("Improper cleanup is happening");
+        if (NULL == this->m_bank[k]) throw string("Improper cleanup is happening");
 
-        if (m_bank[k]->find(client_id) == m_bank[k]->end()) return NULL;
+        if (this->m_bank[k]->find(client_id) == this->m_bank[k]->end()) return NULL;
 
-        return (*m_bank[k])[client_id];
+        return (*(this->m_bank[k]))[client_id];
     }
 
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
     virtual SubscriptionMap* get_by_pq(KeySet const key_set) const
     {
-        return m_bank[this->get_key(key_set)];
+        return this->m_bank[this->get_key(key_set)];
     }
 
     // remove a node from the custom container (not the heap) based on its key
     virtual void remove_by_fq(KeySet const key_set, MCCI_CLIENT_ID_T client_id)
     {
         Key k = this->get_key(key_set);
-        m_bank[k]->erase(client_id);
+        this->m_bank[k]->erase(client_id);
 
         // clean up if the subscriber map is empty
-        if (m_bank[k]->empty()) this->remove_by_pq(key_set);
+        if (this->m_bank[k]->empty()) this->remove_by_pq(key_set);
     }
 
     // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
@@ -285,9 +290,9 @@ template<typename KeySet, typename Key>
     {
         Key k = this->get_key(key_set);
         
-        delete m_bank[k];
-        m_bank[k] = NULL;
-        m_bank.remove(k);
+        delete this->m_bank[k];
+        this->m_bank[k] = NULL;
+        this->m_bank.remove(k);
     }
 };
 
@@ -332,14 +337,14 @@ template<typename KeySet, typename Key1, typename Key2>
         LinearHashKey2Iterator it2;
         
         // free all map objects that exist in LinearHash.
-        for (it1 = m_bank.begin(); it1 != m_bank.end(); ++it1)
-            for (it2 = m_bank[it1->first].begin(); it2 != m_bank[it1->first].end(); ++it2)
+        for (it1 = this->m_bank.begin(); it1 != this->m_bank.end(); ++it1)
+            // TODO: it1->second == m_bank[it1->first] ?
+            for (it2 = this->m_bank[it1->first].begin(); it2 != this->m_bank[it1->first].end(); ++it2)
                 if (NULL != it2->second)
                     delete it2->second;
     }
 
-    virtual void on_init(unsigned int size) {
-    m_bank.resize_nearest_prime(size); }
+    virtual void on_init(unsigned int size) { this->m_bank.resize_nearest_prime(size); }
 
     // assume that this entry is unique and add it to the structure
     virtual void add_by_fq(KeySet const key_set,
@@ -350,10 +355,10 @@ template<typename KeySet, typename Key1, typename Key2>
         Key2 k2 = this->get_key_2(key_set);
 
         // init hash entry if it doesn't exist 
-        if (!m_bank.has_key(k1)) m_bank[k1].resize_nearest_prime(this->m_num_key2);
-        if (!m_bank[k1].has_key(k2)) m_bank[k1][k2] = new SubscriptionMap();
-        if (NULL == m_bank[k1][k2]) throw string("Couldn't allocate new SubscriptionMap");
-        (*m_bank[k1][k2])[client_id] = node_ptr;  // add to map
+        if (!this->m_bank.has_key(k1)) this->m_bank[k1].resize_nearest_prime(this->m_num_key2);
+        if (!this->m_bank[k1].has_key(k2)) this->m_bank[k1][k2] = new SubscriptionMap();
+        if (NULL == this->m_bank[k1][k2]) throw string("Couldn't allocate new SubscriptionMap");
+        (*(this->m_bank[k1][k2]))[client_id] = node_ptr;  // add to map
         return 0;  // OK
     }
     
@@ -363,10 +368,10 @@ template<typename KeySet, typename Key1, typename Key2>
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
-        if (!m_bank.has_key(k1)) return NULL;
-        if (!m_bank[k1].has_key(k2)) return NULL;
-        if (m_bank[k1][k2]->find(client_id) == m_bank[k1][k2]->end()) return NULL;
-        return (*m_bank[k1][k2])[client_id];
+        if (!this->m_bank.has_key(k1)) return NULL;
+        if (!this->m_bank[k1].has_key(k2)) return NULL;
+        if (this->m_bank[k1][k2]->find(client_id) == this->m_bank[k1][k2]->end()) return NULL;
+        return (*(this->m_bank[k1][k2]))[client_id];
     }
 
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
@@ -374,7 +379,7 @@ template<typename KeySet, typename Key1, typename Key2>
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
-        return m_bank[k1][k2];
+        return this->m_bank[k1][k2];
     }
 
     // remove a node from the custom container (not the heap) based on its key
@@ -382,22 +387,21 @@ template<typename KeySet, typename Key1, typename Key2>
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
-        SubscriptionMap* m = m_bank[k1][k2];
+        SubscriptionMap* m = this->m_bank[k1][k2];
         
         m->erase(client_id);
         
         if (m->empty())
         {
             delete m;
-            m_bank[k1][k2] = NULL;
-            m_bank[k1].remove(k2);
-        }
+            this->m_bank[k1][k2] = NULL;
+            this->m_bank[k1].remove(k2);
 
-        if (m_bank[k1].empty())
-        {
-            m_bank.remove(k1);
+            if (this->m_bank[k1].empty())
+            {
+                this->m_bank.remove(k1);
+            }
         }
-        
     }
 
     // remove a partially-qualified set of nodes from the custom container (don't delete HeapNodes)
@@ -406,8 +410,8 @@ template<typename KeySet, typename Key1, typename Key2>
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
 
-        delete m_bank[k1][k2];
-        m_bank[k1][k2] = NULL;
+        delete this->m_bank[k1][k2];
+        this->m_bank[k1][k2] = NULL;
     }
 };
 
