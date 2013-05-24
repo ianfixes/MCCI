@@ -27,20 +27,20 @@ void test1()
         
     //DblStuffRequestBank b(1, 100, 100);
 
-    TestRequestBank b(5, 100);
+    TestRequestBank b(501, 100);
 
     printf("\nbrand-new Requestbank is empty? %d", b.empty());
 
     // key, client, timeout)
     for (int i=4; i < 30; i+=2)
     {
-        printf("Adding %d", i);
+        printf("\nAdding %d", i);
         b.add(i, 400 + i, 4008 + i);
-        printf("Adding %d", i - 2);
+        printf("\nAdding %d", i - 2);
         b.add(i - 2, 400 + i - 2, 4008 + i - 2);
-        printf("Removing minimum");
+        printf("\nRemoving minimum");
         b.remove_minimum();
-        printf("Removing minimum");
+        printf("\nRemoving minimum");
         b.remove_minimum();
     }
     
@@ -50,11 +50,6 @@ void test1()
     b.add(8, 3, 3);
     printf("\nRequestbank with 1 entry is empty? %d", b.empty());
 
-    b.remove_minimum();
-    printf("\nRequestBank after removing the only entry is empty? %d", b.empty());
-
-    
-    
     b.add(8, 500, 5008);
     b.add(6, 500, 5006);
     b.add(7, 500, 5007);
