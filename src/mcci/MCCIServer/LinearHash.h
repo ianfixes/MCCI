@@ -64,20 +64,32 @@ template <typename Key, typename Data> class LinearHash
     {
         this->m_size = 0;
         this->resize(1);
-    };
+    }
     
 
     LinearHash(unsigned int size)
     {
         this->m_size = 0;
         this->resize(size);
-    };
+    }
+
+    LinearHash(const LinearHash &rhs)
+    {
+        this->m_size = 0;
+        this->resize(rhs.m_size);
+
+        for (iterator it = rhs.begin(); it != rhs.end(); ++it)
+        {
+            this->insert(it->first, it->second);
+        }
+        
+    }
 
     
     ~LinearHash()
     {
-        delete[] this->m_container; // TODO: check proper delete syntax
-    };
+        if (this->m_size) delete[] this->m_container;
+    }
 
 
     //resize, destructively, to exact size
@@ -87,8 +99,12 @@ template <typename Key, typename Data> class LinearHash
         {
             throw string("Tried to set hash size to 0");
         }
-        
-        if (this->m_size) delete[] this->m_container;
+
+        if (this->m_size)
+        {
+            delete[] this->m_container;
+            this->m_size = 0;
+        }
 
         this->m_size = size;
         this->m_container = new Container[this->m_size]();
@@ -198,15 +214,15 @@ template <typename Key, typename Data> class LinearHash
 
     class iterator : public std::iterator<std::input_iterator_tag, pair<Key, Data> >
     {
-        LinearHash<Key, Data>* h;
+        const LinearHash<Key, Data>* h;
         unsigned int idx;
         ContainerIterator ci;
 
       public:
 
-        iterator() {};
+        iterator() {}
         
-        iterator(LinearHash<Key, Data>* h, unsigned int idx, ContainerIterator ci)
+        iterator(const LinearHash<Key, Data>* const h, unsigned int idx, const ContainerIterator ci)
         {
             this->h = h;
             this->idx = idx;
@@ -272,7 +288,7 @@ template <typename Key, typename Data> class LinearHash
     };
 
     // iteration points: begin
-    iterator begin()
+    iterator begin() const
     {
         for (unsigned int i = 0; i < this->m_size; ++i)
             if (!this->m_container[i].empty())
@@ -282,10 +298,11 @@ template <typename Key, typename Data> class LinearHash
     }
 
     // iteration points: end
-    iterator end()
+    iterator end() const
     {
         unsigned int last = this->m_size - 1;
         return iterator(this, last + 1, this->m_container[last].end());
     }
+
 
 };
