@@ -6,7 +6,7 @@
 using namespace std;
 
 
-void test_hash_size(unsigned int desired)
+void try_hash_resize(unsigned int desired)
 {
     LinearHash<int, int> lh;
 
@@ -15,24 +15,29 @@ void test_hash_size(unsigned int desired)
     printf("\nnearest_prime(%d) = %d", desired, lh.get_size());
 }
 
-int main()
+void test_hash_sizes()
+{
+
+    try_hash_resize(0);
+    try_hash_resize(1);
+    try_hash_resize(2);
+    try_hash_resize(3);
+    try_hash_resize(4);
+    try_hash_resize(127);
+    try_hash_resize(128);
+    try_hash_resize(250);
+    try_hash_resize(251);
+    try_hash_resize(8192);
+    try_hash_resize(16380);
+    try_hash_resize(16384);
+    //try_hash_resize();
+
+}
+
+void test_hash_operations()
 {
     typedef LinearHash<unsigned long, string> NumberHash;
     NumberHash lh(101);
-
-    test_hash_size(0);
-    test_hash_size(1);
-    test_hash_size(2);
-    test_hash_size(3);
-    test_hash_size(4);
-    test_hash_size(127);
-    test_hash_size(128);
-    test_hash_size(250);
-    test_hash_size(251);
-    test_hash_size(8192);
-    test_hash_size(16380);
-    test_hash_size(16384);
-    //test_hash_size();
 
     printf("\n\nAdding 3000, 1000000, and 37");
     lh.insert(3000, "three thousand");
@@ -95,6 +100,49 @@ int main()
 
     printf("\n\nInt value of uninitialized lookup key 42 is %d (we expect 0)", ilh[42]);
 
+}
+
+
+void test_multidim_hash()
+{
+
+    typedef LinearHash<short, string> ShortLinearHash;
+    typedef LinearHash<long, ShortLinearHash> LongShortLinearHash;
+
+    typedef typename ShortLinearHash::iterator ShortLinearHashIterator;
+    typedef typename LongShortLinearHash::iterator LongShortLinearHashIterator;
+
+    LongShortLinearHash ls(5);
+    
+    for (short s = 10; s < 20; ++s)
+    {
+        for (long l = 0; l < 1000; l += 100)
+        {
+            char buf[100];
+            sprintf(buf, "(%ld, %d)", l, s);
+
+            ls[l][s] = buf;
+        }
+    }
+
+    // now print
+    for (short s = 10; s < 20; ++s)
+    {
+        for (long l = 0; l < 1000; l += 100)
+        {
+            printf("\nLocation ls[%ld][%d] = %s", l, s, ls[l][s].c_str());
+        }
+    }
+}
+
+int main()
+{
+    
+    test_hash_sizes();
+
+    test_hash_operations();
+
+    test_multidim_hash();
     
     printf("\n\n");
     
