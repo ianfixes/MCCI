@@ -316,16 +316,16 @@ template<typename KeySet, typename Key1, typename Key2>
     typedef typename LinearHashKey1::iterator LinearHashKey1Iterator;
     
     LinearHashKey1 m_bank;
-    unsigned int m_num_key1;
-    unsigned int m_num_key2;
+    unsigned int m_size_key1;
+    unsigned int m_size_key2;
 
   public:
     RequestBankTwoKeys(unsigned int max_clients, unsigned int num_key1, unsigned int num_key2)
         : RequestBank<KeySet>(max_clients)
     {
-        this->m_num_key1 = num_key1;
-        this->m_num_key2 = num_key2;
-        this->m_bank.resize_nearest_prime(this->m_num_key1);
+        this->m_size_key1 = num_key1;
+        this->m_size_key2 = num_key2;
+        this->m_bank.resize_nearest_prime(this->m_size_key1);
     }
     
     virtual Key1 get_key_1(KeySet const key_set) const = 0;
@@ -344,8 +344,6 @@ template<typename KeySet, typename Key1, typename Key2>
                     delete it2->second;
     }
 
-    virtual void on_init(unsigned int size) { this->m_bank.resize_nearest_prime(size); }
-
     // assume that this entry is unique and add it to the structure
     virtual void add_by_fq(KeySet const key_set,
                            MCCI_CLIENT_ID_T client_id,
@@ -354,12 +352,11 @@ template<typename KeySet, typename Key1, typename Key2>
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
 
-        // init hash entry if it doesn't exist 
-        if (!this->m_bank.has_key(k1)) this->m_bank[k1].resize_nearest_prime(this->m_num_key2);
+        // init hash entry if it doesn't exist
+        if (!this->m_bank.has_key(k1)) this->m_bank[k1].resize_nearest_prime(this->m_size_key2);
         if (!this->m_bank[k1].has_key(k2)) this->m_bank[k1][k2] = new SubscriptionMap();
         if (NULL == this->m_bank[k1][k2]) throw string("Couldn't allocate new SubscriptionMap");
         (*(this->m_bank[k1][k2]))[client_id] = node_ptr;  // add to map
-        return 0;  // OK
     }
     
     // return a pointer to a heap node based on the fully-qualified information, NULL if d.n.e.
