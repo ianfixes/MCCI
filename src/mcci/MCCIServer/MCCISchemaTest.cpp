@@ -49,6 +49,8 @@ int main(int argc, char* argv[])
         MCCI_VARIABLE_T v = schema->variable_of_ordinal(i);
         printf("\n   %d\t%d\t%s", i, v, schema->name_of_variable(v).c_str());
     }
+
+    printf("\nHash: %s", schema->get_hash().c_str());
     
     printf("\n\n");
 

@@ -24,9 +24,11 @@ void CMCCISchema::load(sqlite3* schema_db)
     int datalen;
     MCCI_VARIABLE_T var_id;
     string var_name;
+    long var_pbuf;
+    long var_unit;
     
     result = sqlite3_prepare_v2(schema_db,
-                                "select var_id, name from var where enabled <> 0",
+                                "select var_id, name, protobuf_id, unit from var where enabled <> 0",
                                 -1, &stmt, 0);
 
     if (result) throw string("Loading of data filed FIXME: result");
@@ -42,6 +44,8 @@ void CMCCISchema::load(sqlite3* schema_db)
 
         var_id = (MCCI_VARIABLE_T) sqlite3_column_int(stmt, 0);
         var_name = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
+        var_pbuf = sqlite3_column_int(stmt, 2);
+        var_pbuf = sqlite3_column_int(stmt, 3);
         
         // set lookup values
         m_ordinality[var_id] = i;
@@ -49,7 +53,8 @@ void CMCCISchema::load(sqlite3* schema_db)
         m_name[i] = var_name;
 
         // update hash
-        datalen = snprintf(data, 512, "%d\t%s\n", var_id, var_name.c_str());
+        datalen = snprintf(data, 512, "%d\t%s\t%ld\t%ld\n",
+                           var_id, var_name.c_str(), var_pbuf, var_unit);
         if (512 < datalen) throw string("Got a line that was too long");
         update_success = SHA1_Update(&context, data, datalen);
     }
