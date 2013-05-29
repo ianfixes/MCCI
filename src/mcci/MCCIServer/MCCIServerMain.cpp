@@ -94,6 +94,10 @@ int main(int argc, char* argv[])
         printf("\n well... we caught some error");
     }
 
+
+    // MAIN SERVER LOOP GOES HERE
+
+    
     return 0;
     
 }
