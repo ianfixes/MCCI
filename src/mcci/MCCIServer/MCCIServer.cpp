@@ -7,13 +7,13 @@ using namespace std;
 
 
 CMCCIServer::CMCCIServer(SMCCIServerSettings settings) :
+    m_working_set(m_settings.schema->get_cardinality(), NULL),
     m_bank_all(100, 1),
     m_bank_host(settings.max_clients, settings.bank_size_host),
     m_bank_var(settings.max_clients, settings.bank_size_var),
     m_bank_hostvar(settings.max_clients, settings.bank_size_hostvar),
     m_bank_remote(settings.max_clients, settings.bank_size_remote_hostvar, settings.bank_size_remote_rev),
     m_bank_varrev(settings.max_clients, settings.bank_size_varrev_var, settings.bank_size_varrev_rev)
-
 {
     m_settings = settings;
 }
@@ -28,9 +28,9 @@ bool CMCCIServer::is_rejectable_request(const SMCCIRequestPacket* input)
 }
 
 
-int CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
-                                 const SMCCIRequestPacket* input,
-                                 SMCCIResponsePacket* response)
+void CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
+                                  const SMCCIRequestPacket* input,
+                                  SMCCIResponsePacket* response)
 {
     response->requests_remaining_local  = client_free_requests_local(requestor_id);
     response->requests_remaining_remote = client_free_requests_remote(requestor_id);
@@ -39,20 +39,20 @@ int CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
     if (is_rejectable_request(input))
     {
         response->accepted = false;
-        return 1;
+        return;
     }
     response->accepted = true;     // all requests are (or should be) OK after this
     
     // check the time 
     if (get_mcci_time() > input->timeout)
     {
-        return 1;
+        return; // silently drop.  we accepted the packet that was timed out, so noop.
     }
     
     // if subscribing to ALL nodes
     if (MCCI_HOST_ANY == input->node_address) 
     {
-        if (!response->requests_remaining_remote) return 1; // basically just drop silently
+        if (!response->requests_remaining_remote) return; // basically just drop silently
         
         if (0 == input->variable_id)
         {
@@ -66,40 +66,43 @@ int CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
         }
 
         response->requests_remaining_remote = client_free_requests_remote(requestor_id);
-        return 1;
+        return;
     }
     
     // subscribing to one node that may be local or remote
     if (0 == input->variable_id && 0 == input->revision)
     {
-        if (!response->requests_remaining_remote) return 1; // silently drop request
+        if (!response->requests_remaining_remote) return; // silently drop request
         
         subscribe_to_host(requestor_id, input->timeout, input->node_address);
         response->requests_remaining_remote -= 1;
-        return 1;
+        return;
     }
     
-    return process_forwardable_request(requestor_id, input, response);
+    process_forwardable_request(requestor_id, input, response);
 }
 
 
-int CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
-                                             const SMCCIRequestPacket* input,
-                                             SMCCIResponsePacket* response)
+void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
+                                              const SMCCIRequestPacket* input,
+                                              SMCCIResponsePacket* response)
 {
     //TODO: assert input->variable_id != 0
     //TODO: assert node_address != ALL
-    // response->requests_remaining has already been initialized
+    // response->requests_remaining_* have already been initialized
     
     bool is_for_me = is_my_address(input->node_address);
     bool do_forward = !is_for_me;
     
     if (!is_for_me && 0 == input->revision)
     {
-        if (!response->requests_remaining_remote) return 1; //silently drop
-        
-        subscribe_to_host_var(requestor_id, input->timeout, input->node_address, input->variable_id);
-        forward_request(requestor_id, input);
+        // silently drop if we have no more requests
+        if (response->requests_remaining_remote)
+        {
+            subscribe_to_host_var(requestor_id, input->timeout, input->node_address, input->variable_id);
+            forward_request(requestor_id, input);
+        }
+        return;
     }           
     // guaranteed to have a measurable value for revision=0 at this point
     
@@ -118,10 +121,12 @@ int CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
 
     // figure out where to start counting (observing desired range and order, constrained by limits)
     if (0 < input->revision)
+    {
         if (1 == direction)
             firstrev = input->revision;
         else
             firstrev = input->revision + quantity - limit;
+    }
     else
     {
         MCCI_REVISION_T maxrevision = m_settings.revisionset->get_revision(input->variable_id);
@@ -164,93 +169,108 @@ int CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
         rem = response->requests_remaining_remote;
         response->requests_remaining_remote = quantity <= rem ? rem - quantity : 0;
     }
+
+    // we are forwarding a request that might be for more packets than available
+    //  subscription slots.  i think this is ok, since the send ordering is preserved
+    //  and it's possible that the slots will clear (for re-request) before the later
+    //  packets arrive.
     
     if (do_forward) forward_request(requestor_id, input);
 
-    return 1;
 }
 
 
-int CMCCIServer::subscribe_promiscuous(MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
+void CMCCIServer::subscribe_promiscuous(MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
 {
     m_bank_all.add(1, client_id, timeout);
-    return 1;
 }
 
-int CMCCIServer::subscribe_to_host(MCCI_CLIENT_ID_T client_id,
-                                   MCCI_TIME_T timeout,
-                                   MCCI_NODE_ADDRESS_T node_address)
+void CMCCIServer::subscribe_to_host(MCCI_CLIENT_ID_T client_id,
+                                    MCCI_TIME_T timeout,
+                                    MCCI_NODE_ADDRESS_T node_address)
 {
     m_bank_host.add(node_address, client_id, timeout);
-    return 1;
 }
 
-int CMCCIServer::subscribe_to_variable(MCCI_CLIENT_ID_T client_id,
-                                       MCCI_TIME_T timeout,
-                                       MCCI_VARIABLE_T variable_id)
+void CMCCIServer::subscribe_to_variable(MCCI_CLIENT_ID_T client_id,
+                                        MCCI_TIME_T timeout,
+                                        MCCI_VARIABLE_T variable_id)
 {
     m_bank_var.add(variable_id, client_id, timeout);
-    return 1;
 }
 
-int CMCCIServer::subscribe_to_host_var(MCCI_CLIENT_ID_T client_id,
-                                       MCCI_TIME_T timeout,
-                                       MCCI_NODE_ADDRESS_T host,
-                                       MCCI_VARIABLE_T variable_id)
+void CMCCIServer::subscribe_to_host_var(MCCI_CLIENT_ID_T client_id,
+                                        MCCI_TIME_T timeout,
+                                        MCCI_NODE_ADDRESS_T host,
+                                        MCCI_VARIABLE_T variable_id)
 {
     HostVarPair hv;
     hv.host = host;
     hv.var = variable_id;
     m_bank_hostvar.add(hv, client_id, timeout);
-
-    return 1;
 }
 
-int CMCCIServer::subscribe_specific_remote(MCCI_CLIENT_ID_T client_id,
-                                           MCCI_TIME_T timeout,
-                                           MCCI_NODE_ADDRESS_T host,
-                                           MCCI_VARIABLE_T variable_id,
-                                           MCCI_REVISION_T revision)
+void CMCCIServer::subscribe_specific_remote(MCCI_CLIENT_ID_T client_id,
+                                            MCCI_TIME_T timeout,
+                                            MCCI_NODE_ADDRESS_T host,
+                                            MCCI_VARIABLE_T variable_id,
+                                            MCCI_REVISION_T revision)
 {
     HostVarRevTuple hvr;
     hvr.host = host;
     hvr.var = variable_id;
     hvr.rev = revision;
     m_bank_remote.add(hvr, client_id, timeout);
-
-    return 1;
 }
 
 
-int CMCCIServer::subscribe_specific(MCCI_CLIENT_ID_T client_id,
-                                    MCCI_TIME_T timeout,
-                                    MCCI_VARIABLE_T variable_id,
-                                    MCCI_REVISION_T revision)
+void CMCCIServer::subscribe_specific(MCCI_CLIENT_ID_T client_id,
+                                     MCCI_TIME_T timeout,
+                                     MCCI_VARIABLE_T variable_id,
+                                     MCCI_REVISION_T revision)
 {
     VarRevPair vr;
     vr.var = variable_id;
     vr.rev = revision;
     m_bank_varrev.add(vr, client_id, timeout);
-    return 1;
 }
 
 
-int CMCCIServer::process_production(MCCI_CLIENT_ID_T provider_id,
-                                    const SMCCIProductionPacket* input,
-                                    SMCCIAcceptancePacket* output)
+void CMCCIServer::process_production(MCCI_CLIENT_ID_T provider_id,
+                                     const SMCCIProductionPacket* input,
+                                     SMCCIAcceptancePacket* output)
 {
     // hit the revisionset for the revision id
-    // add the packet to the working set
+    MCCI_REVISION_T rev = m_settings.revisionset->inc_revision(input->variable_id);
+    
+    // fill in the fields of the data and acceptance packets
+    SMCCIDataPacket* dp = new SMCCIDataPacket();
+    dp->node_address = m_settings.my_node_address;
+    dp->variable_id  = input->variable_id;
+    dp->revision     = rev;
+    dp->payload      = input->payload;
+
+    output->response_id = input->response_id;
+    output->revision    = rev;
+    
+    // add the packet to the working set (will free anything that was there)
+    set_working_variable(input->variable_id, dp);
+
     // call process_data with the new packet
-    return 1;
+    process_data(provider_id, dp);
+
+    if (output->response_id)
+    {
+        // FIXME: send response
+    }
 }
 
 
-int CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPacket* input)
+void CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPacket* input)
 {
 
     // create linear hash
-    LinearHash<int, bool> hits(100);
+    LinearHash<MCCI_CLIENT_ID_T, bool> hits(100);
 
     // check all request banks for client matches
     for (AllRequestBank::subscriber_iterator it = m_bank_all.subscribers_begin(1);
@@ -289,12 +309,15 @@ int CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPacke
         hits[*it] = true;
     }
 
-    
     // iterate over linear hash and send data to clients
+    for (LinearHash<MCCI_CLIENT_ID_T, bool>::iterator it = hits.begin();
+         it != hits.end(); ++it)
+    {
+        //FIXME: send_data_to_client(*it, input)
+    }
 
-    // process deletions from banks
-    
-    return 1;
+
+    //FIXME: send ack to provider_id?
 }
 
 
@@ -318,10 +341,14 @@ unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id)
         );  
 }
 
-int CMCCIServer::enforce_timeouts()
+void CMCCIServer::enforce_timeouts()
 {
     MCCI_TIME_T now = get_mcci_time();
 
+    //TODO: if we have a lot of removals, defer some of them until later?
+    // in other words take only n of k removals if n < k, but for every deferal
+    // if k > last_n then take more than n.
+    
     while (now > m_bank_all.minimum_timeout()) m_bank_all.remove_minimum();
 
     while (now > m_bank_host.minimum_timeout()) m_bank_host.remove_minimum();
@@ -331,7 +358,5 @@ int CMCCIServer::enforce_timeouts()
     while (now > m_bank_hostvar.minimum_timeout()) m_bank_hostvar.remove_minimum();
 
     while (now > m_bank_varrev.minimum_timeout()) m_bank_varrev.remove_minimum();
-    
-    return 1;
 }
 

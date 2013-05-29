@@ -62,18 +62,18 @@ class CMCCIServer
     ~CMCCIServer();
     
     // accept a request packet, and put its contents in the appropriate structures, responding accordingly
-    int process_request(MCCI_CLIENT_ID_T requestor_id,
-                        const SMCCIRequestPacket* input,
-                        SMCCIResponsePacket* response);
+    void process_request(MCCI_CLIENT_ID_T requestor_id,
+                         const SMCCIRequestPacket* input,
+                         SMCCIResponsePacket* response);
 
     // accept a data packet, giving a reference to its contents to all necessary subscriber
-    int process_data(MCCI_CLIENT_ID_T provider_id,
-                     const SMCCIDataPacket* input);
+    void process_data(MCCI_CLIENT_ID_T provider_id,
+                      const SMCCIDataPacket* input);
 
     // accept a production packet
-    int process_production(MCCI_CLIENT_ID_T provider_id,
-                           const SMCCIProductionPacket* input,
-                           SMCCIAcceptancePacket* output);
+    void process_production(MCCI_CLIENT_ID_T provider_id,
+                            const SMCCIProductionPacket* input,
+                            SMCCIAcceptancePacket* output);
 
     // tell the client how many requests it is allowed to make
     unsigned int client_free_requests_local(MCCI_CLIENT_ID_T client_id);
@@ -83,7 +83,7 @@ class CMCCIServer
     //{ return m_settings.max_remote_requests - m_outstanding_requests_remote[client_id]; }
 
     // remove all expired requests and update the outstanding_requests counters appropriately
-    int enforce_timeouts();
+    void enforce_timeouts();
     
   protected:
 
@@ -91,71 +91,69 @@ class CMCCIServer
     bool is_my_address(MCCI_NODE_ADDRESS_T address) { return 0 == address || address == m_settings.my_node_address; };
     
     // whether a variable id has delivered its first value
-    bool is_in_working_set(MCCI_VARIABLE_T variable_id) { return NULL != m_working_set[variable_id]; };
+    bool is_in_working_set(MCCI_VARIABLE_T variable_id)
+    {
+        unsigned int idx = m_settings.schema->ordinality_of_variable(variable_id);
+        return NULL != m_working_set[idx];
+    }
 
+    SMCCIDataPacket* get_working_variable(MCCI_VARIABLE_T variable_id)
+    {
+        unsigned int idx = m_settings.schema->ordinality_of_variable(variable_id);
+        return m_working_set.at(idx);
+    }
+
+    void set_working_variable(MCCI_VARIABLE_T variable_id, SMCCIDataPacket* v)
+    {
+        unsigned int idx = m_settings.schema->ordinality_of_variable(variable_id);
+        if (m_working_set[idx]) delete m_working_set[idx];
+        m_working_set[idx] = v;
+    }
+    
     // whether a request has one of the 4 possible input combinations that makes it wrong
     bool is_rejectable_request(const SMCCIRequestPacket* input);
 
     // slave to process_request, for the cases that involve forwarding
-    int process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
-                                    const SMCCIRequestPacket* input,
-                                    SMCCIResponsePacket* response);
+    void process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
+                                     const SMCCIRequestPacket* input,
+                                     SMCCIResponsePacket* response);
 
     // send a request to be delivered to all clients
-    int forward_request(MCCI_CLIENT_ID_T requestor_id, const SMCCIRequestPacket* request) { return 1; };
+    void forward_request(MCCI_CLIENT_ID_T requestor_id, const SMCCIRequestPacket* request)
+    {};
+    // FIXME: this will be a 0mq publish operation, queue name will be host.var.rev i think
 
     // add a client to the list of recipients for all data packets
-    int subscribe_promiscuous(MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout);
+    void subscribe_promiscuous(MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout);
 
     // add a client to the list of recipients for packets of given variable_id
-    int subscribe_to_variable(MCCI_CLIENT_ID_T client_id,
-                              MCCI_TIME_T timeout,
-                              MCCI_VARIABLE_T variable_id);
-
+    void subscribe_to_variable(MCCI_CLIENT_ID_T client_id,
+                               MCCI_TIME_T timeout,
+                               MCCI_VARIABLE_T variable_id);
+    
     // add a client to the list of recipients for packets from given host
-    int subscribe_to_host(MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout,
-                          MCCI_NODE_ADDRESS_T node_address);
+    void subscribe_to_host(MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout,
+                           MCCI_NODE_ADDRESS_T node_address);
 
     // add a client to the list of recipients for packets from given host and variable ID
-    int subscribe_to_host_var(MCCI_CLIENT_ID_T client_id,
-                              MCCI_TIME_T timeout,
-                              MCCI_NODE_ADDRESS_T node_address,
-                              MCCI_VARIABLE_T variable_id);
+    void subscribe_to_host_var(MCCI_CLIENT_ID_T client_id,
+                               MCCI_TIME_T timeout,
+                               MCCI_NODE_ADDRESS_T node_address,
+                               MCCI_VARIABLE_T variable_id);
 
     //add a client to the list of receipents for a specific packet from this host
-    int subscribe_specific(MCCI_CLIENT_ID_T client_id,
-                           MCCI_TIME_T timeout,
-                           MCCI_VARIABLE_T variable_id,
-                           MCCI_REVISION_T revision);
-
+    void subscribe_specific(MCCI_CLIENT_ID_T client_id,
+                            MCCI_TIME_T timeout,
+                            MCCI_VARIABLE_T variable_id,
+                            MCCI_REVISION_T revision);
+    
     // add a client to the list of recipients for a specific packet from a remote host
-    int subscribe_specific_remote(MCCI_CLIENT_ID_T client_id,
-                                  MCCI_TIME_T timeout,
-                                  MCCI_NODE_ADDRESS_T node_address,
-                                  MCCI_VARIABLE_T variable_id,
-                                  MCCI_REVISION_T revision);
+    void subscribe_specific_remote(MCCI_CLIENT_ID_T client_id,
+                                   MCCI_TIME_T timeout,
+                                   MCCI_NODE_ADDRESS_T node_address,
+                                   MCCI_VARIABLE_T variable_id,
+                                   MCCI_REVISION_T revision);
     
-    // local requests: 
-    // 
-    //       array        myhash       list
-    // reqs[variable_id][sequence_id][subscriber] = 
-
-
-
-    // remote requests
-    //
-    //
-    // reqs[host, variable_id][sequence_id][subscriber] = 
-
-    
-    // wildcard requests = subscriptions for duration of timeout
-    //
-    // host can be wildcard
-    // variable can be wildcard
-    // seq can be wildcard (i.e. latest)
-    //
-    // reqs
-
 
 };
 
