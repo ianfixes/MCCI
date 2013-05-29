@@ -63,19 +63,37 @@ int main(int argc, char* argv[])
         // these should be prime numbers because they become hash table sizes
         settings.max_local_requests = 101;
         settings.max_remote_requests = 199;
+        settings.max_clients = 100;
+
+        settings.bank_size_host = 20;
+        settings.bank_size_var = 20;
+        settings.bank_size_hostvar = 30;
+        settings.bank_size_varrev_var = 100;
+        settings.bank_size_varrev_rev = 20;
+        settings.bank_size_remote_hostvar = 20;
+        settings.bank_size_remote_rev = 20;
         
         // assign other objects
         settings.schema = schema;
         settings.revisionset = rs;
-        
+
         myServer = new CMCCIServer(settings);
         
         cleanup();
+    }
+    catch (std::bad_alloc ba)
+    {
+        printf("\nGot exception '%s'", ba.what());
     }
     catch (string s)
     {
         printf("\n\nGot error: %s\n\n", s.c_str());
     }
+    catch (...)
+    {
+        printf("\n well... we caught some error");
+    }
+
     return 0;
     
 }

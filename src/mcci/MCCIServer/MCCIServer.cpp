@@ -1,12 +1,19 @@
 
 #include "MCCIServer.h"
-#include <limits.h>
+
 
 using namespace std;
 
-// FIXME: replace 11111 with UINT32_MAX
 
-CMCCIServer::CMCCIServer(SMCCIServerSettings settings)
+
+CMCCIServer::CMCCIServer(SMCCIServerSettings settings) :
+    m_bank_all(100, 1),
+    m_bank_host(settings.max_clients, settings.bank_size_host),
+    m_bank_var(settings.max_clients, settings.bank_size_var),
+    m_bank_hostvar(settings.max_clients, settings.bank_size_hostvar),
+    m_bank_remote(settings.max_clients, settings.bank_size_remote_hostvar, settings.bank_size_remote_rev),
+    m_bank_varrev(settings.max_clients, settings.bank_size_varrev_var, settings.bank_size_varrev_rev)
+
 {
     m_settings = settings;
 }
@@ -14,12 +21,16 @@ CMCCIServer::CMCCIServer(SMCCIServerSettings settings)
 bool CMCCIServer::is_rejectable_request(const SMCCIRequestPacket* input)
 {
     return 0 < input->revision && (
-        (0 == input->node_address && 0 == input->variable_id)  // requests with a sequence number but no variable
-        || (11111 == input -> node_address && 0 < input->variable_id)); // requests with no host but yes variable
+        // requests with a sequence number but no variable
+        (0 == input->node_address && 0 == input->variable_id)
+        // requests with no host but yes variable
+        || (MCCI_HOST_ANY == input -> node_address && 0 < input->variable_id)); 
 }
 
 
-int CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id, const SMCCIRequestPacket* input, SMCCIResponsePacket* response)
+int CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
+                                 const SMCCIRequestPacket* input,
+                                 SMCCIResponsePacket* response)
 {
     response->requests_remaining_local  = client_free_requests_local(requestor_id);
     response->requests_remaining_remote = client_free_requests_remote(requestor_id);
@@ -39,7 +50,7 @@ int CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id, const SMCCIReque
     }
     
     // if subscribing to ALL nodes
-    if (11111 == input->node_address) 
+    if (MCCI_HOST_ANY == input->node_address) 
     {
         if (!response->requests_remaining_remote) return 1; // basically just drop silently
         
@@ -54,7 +65,6 @@ int CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id, const SMCCIReque
             subscribe_to_variable(requestor_id, input->timeout, input->variable_id); 
         }
 
-        ++m_outstanding_requests_remote[requestor_id];
         response->requests_remaining_remote = client_free_requests_remote(requestor_id);
         return 1;
     }
@@ -100,9 +110,11 @@ int CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
 
     // calculate limit -- max quantity allowed.  basically same calculation using local vs remote
     if (is_for_me)
-        limit = response->requests_remaining_local >= quantity ? quantity : response->requests_remaining_local;
+        limit = response->requests_remaining_local >= quantity ?
+            quantity : response->requests_remaining_local;
     else
-        limit = response->requests_remaining_local >= quantity ? quantity : response->requests_remaining_remote;
+        limit = response->requests_remaining_local >= quantity ?
+            quantity : response->requests_remaining_remote;
 
     // figure out where to start counting (observing desired range and order, constrained by limits)
     if (0 < input->revision)
@@ -126,18 +138,21 @@ int CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
     {
         if (is_for_me)
         {
-            do_forward |= !is_in_working_set(input->variable_id); // if we don't have this value, ask for it
+            // if we don't have this value, ask for it
+            do_forward |= !is_in_working_set(input->variable_id); 
             subscribe_specific(requestor_id, input->timeout, input->variable_id, r);
         }
         else
         {
-            subscribe_specific_remote(requestor_id, input->timeout, input->node_address, input->variable_id, r);
+            subscribe_specific_remote(requestor_id,
+                                      input->timeout,
+                                      input->node_address,
+                                      input->variable_id, r);
         }
     }
 
 
     // decrement the remaining requests
-    // FIXME, this should mess with the vector
     unsigned int rem;
     if (is_for_me)
     {
@@ -156,14 +171,165 @@ int CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
 }
 
 
-int CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPacket* input)
+int CMCCIServer::subscribe_promiscuous(MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout)
 {
-    return 1;   
-}
-
-int CMCCIServer::process_production(MCCI_CLIENT_ID_T provider_id, const SMCCIProductionPacket* input, SMCCIAcceptancePacket* output)
-{
+    m_bank_all.add(1, client_id, timeout);
     return 1;
 }
 
+int CMCCIServer::subscribe_to_host(MCCI_CLIENT_ID_T client_id,
+                                   MCCI_TIME_T timeout,
+                                   MCCI_NODE_ADDRESS_T node_address)
+{
+    m_bank_host.add(node_address, client_id, timeout);
+    return 1;
+}
+
+int CMCCIServer::subscribe_to_variable(MCCI_CLIENT_ID_T client_id,
+                                       MCCI_TIME_T timeout,
+                                       MCCI_VARIABLE_T variable_id)
+{
+    m_bank_var.add(variable_id, client_id, timeout);
+    return 1;
+}
+
+int CMCCIServer::subscribe_to_host_var(MCCI_CLIENT_ID_T client_id,
+                                       MCCI_TIME_T timeout,
+                                       MCCI_NODE_ADDRESS_T host,
+                                       MCCI_VARIABLE_T variable_id)
+{
+    HostVarPair hv;
+    hv.host = host;
+    hv.var = variable_id;
+    m_bank_hostvar.add(hv, client_id, timeout);
+
+    return 1;
+}
+
+int CMCCIServer::subscribe_specific_remote(MCCI_CLIENT_ID_T client_id,
+                                           MCCI_TIME_T timeout,
+                                           MCCI_NODE_ADDRESS_T host,
+                                           MCCI_VARIABLE_T variable_id,
+                                           MCCI_REVISION_T revision)
+{
+    HostVarRevTuple hvr;
+    hvr.host = host;
+    hvr.var = variable_id;
+    hvr.rev = revision;
+    m_bank_remote.add(hvr, client_id, timeout);
+
+    return 1;
+}
+
+
+int CMCCIServer::subscribe_specific(MCCI_CLIENT_ID_T client_id,
+                                    MCCI_TIME_T timeout,
+                                    MCCI_VARIABLE_T variable_id,
+                                    MCCI_REVISION_T revision)
+{
+    VarRevPair vr;
+    vr.var = variable_id;
+    vr.rev = revision;
+    m_bank_varrev.add(vr, client_id, timeout);
+    return 1;
+}
+
+
+int CMCCIServer::process_production(MCCI_CLIENT_ID_T provider_id,
+                                    const SMCCIProductionPacket* input,
+                                    SMCCIAcceptancePacket* output)
+{
+    // hit the revisionset for the revision id
+    // add the packet to the working set
+    // call process_data with the new packet
+    return 1;
+}
+
+
+int CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPacket* input)
+{
+
+    // create linear hash
+    LinearHash<int, bool> hits(100);
+
+    // check all request banks for client matches
+    for (AllRequestBank::subscriber_iterator it = m_bank_all.subscribers_begin(1);
+         it != m_bank_all.subscribers_end(1); ++it)
+    {
+        hits[*it] = true;
+    }
+
+    for (HostRequestBank::subscriber_iterator it = m_bank_host.subscribers_begin(input->node_address);
+         it != m_bank_host.subscribers_end(input->node_address); ++it)
+    {
+        hits[*it] = true;
+    }
+
+    for (VariableRequestBank::subscriber_iterator it = m_bank_var.subscribers_begin(input->variable_id);
+         it != m_bank_var.subscribers_end(input->variable_id); ++it)
+    {
+        hits[*it] = true;
+    }
+
+    HostVarPair hv;
+    hv.host = input->node_address;
+    hv.var  = input->variable_id;
+    for (HostVariableRequestBank::subscriber_iterator it = m_bank_hostvar.subscribers_begin(hv);
+         it != m_bank_hostvar.subscribers_end(hv); ++it)
+    {
+        hits[*it] = true;
+    }
+
+    VarRevPair vr;
+    vr.var = input->variable_id;
+    vr.rev = input->revision;
+    for (VariableRevisionRequestBank::subscriber_iterator it = m_bank_varrev.subscribers_begin(vr);
+         it != m_bank_varrev.subscribers_end(vr); ++it)
+    {
+        hits[*it] = true;
+    }
+
     
+    // iterate over linear hash and send data to clients
+
+    // process deletions from banks
+    
+    return 1;
+}
+
+
+unsigned int CMCCIServer::client_free_requests_local(unsigned short client_id)
+{
+    return m_settings.max_local_requests - (
+        0 // m_bank_all
+        + m_bank_varrev.get_outstanding_request_count(client_id)
+        );  // FIXME
+}
+    
+unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id)
+{
+    return m_settings.max_remote_requests - (
+        0 // m_bank_all
+        + m_bank_host.get_outstanding_request_count(client_id)
+        + m_bank_var.get_outstanding_request_count(client_id)
+        + m_bank_hostvar.get_outstanding_request_count(client_id)
+        );  // FIXME
+}
+
+int CMCCIServer::enforce_timeouts()
+{
+    MCCI_TIME_T now = get_mcci_time();
+
+    while (now > m_bank_all.minimum_timeout()) m_bank_all.remove_minimum();
+
+    while (now > m_bank_host.minimum_timeout()) m_bank_host.remove_minimum();
+
+    while (now > m_bank_var.minimum_timeout()) m_bank_var.remove_minimum();
+
+    while (now > m_bank_hostvar.minimum_timeout()) m_bank_hostvar.remove_minimum();
+
+    while (now > m_bank_varrev.minimum_timeout()) m_bank_varrev.remove_minimum();
+    
+    return 1;
+}
+
