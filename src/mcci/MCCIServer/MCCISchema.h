@@ -5,6 +5,7 @@
 #include <openssl/sha.h>
 #include "LinearHash.h"
 #include "MCCITypes.h"
+#include <vector>
 
 using namespace std;
 
@@ -24,19 +25,33 @@ class CMCCISchema
     // populate the db
     void load(sqlite3* schema_db);
 
+    unsigned int load_cardinality(sqlite3* schema_db);
+    
     // get a hash that describes the working variable set
     string get_hash() { return m_hashval; };
 
     // the number of variables being used
-    unsigned int get_cardinality() { return m_name.count(); }; 
+    unsigned int get_cardinality() { return m_name.size(); }; 
 
+    // the ordinality of a variable
+    unsigned int ordinality_of_variable(MCCI_VARIABLE_T variable_id)
+    {
+        if (!m_ordinality.has_key(variable_id)) throw string("Tried to get ordinality of unknown var");
+        return m_ordinality[variable_id];
+    }
+
+    MCCI_VARIABLE_T variable_of_ordinal(unsigned int ord) { return m_variable.at(ord); }
+    
     // lookup the name of a variable
-    string name_of_variable(MCCI_VARIABLE_T variable_id) { return m_name[variable_id]; };
+    string name_of_variable(MCCI_VARIABLE_T variable_id)
+    { return m_name.at(ordinality_of_variable(variable_id)); };
 
                             
   protected:
 
-    LinearHash<MCCI_VARIABLE_T, string> m_name;  // the name of a variable
+    LinearHash<MCCI_VARIABLE_T, unsigned int> m_ordinality; // ordinality
+    vector<string> m_name;  // the name of a variable
+    vector<MCCI_VARIABLE_T> m_variable;
 
     string m_hashval;
     
