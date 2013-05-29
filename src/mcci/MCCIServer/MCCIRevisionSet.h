@@ -8,7 +8,10 @@
 using namespace std;
 
 /**
-   A revision set is the keystone of sane server operation.  It ensures that sequence numbers
+   The RevisionSet provides one of the core assumptions of MCCI message routing:
+   assurance that revisions of variables created on a node do not produce duplicates.
+   
+   In other words, it ensures that sequence numbers
    increase appropriately (for uniqueness) including across database crashes or restarts.
 
    Note that the revision set must be aware of changes to the schema between runs!

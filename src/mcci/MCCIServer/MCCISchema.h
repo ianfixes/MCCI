@@ -10,8 +10,16 @@
 using namespace std;
 
 /**
-   This class provides the working set of variables and their types.  It loads a schema from an sqlite3 database
-   and keeps track of the ordinal numbers of each variable ID.
+   The Schema provides one of the core assumptions of MCCI message routing:
+   assurance that all clients on all nodes have the same understanding of the
+   meaning (well, the identification) of variables and the encoding of their
+   values.
+   
+   This class provides the working set of variables and their types.
+   It loads a schema from an sqlite3 database and keeps track of the
+   ordinal numbers of each variable ID.  It does this because there may be gaps
+   in the variable id, so this class can be thought of as a "packing" tool as
+   well as a consistency tool between clients, etc.
 
    A hashing function is also provided, to ensure runtime compatibility of server and clients.
  */
