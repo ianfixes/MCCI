@@ -16,8 +16,8 @@ enable_testing()
 include(CTest)
 
 ## enable all warnings when building Debug
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -O0 -ggdb")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -O0 -ggdb")
 
 option(enable_omap_arm_neon_coprocessor "Enable the NEON FP coprocessor for certain ARM processors" OFF)
 
