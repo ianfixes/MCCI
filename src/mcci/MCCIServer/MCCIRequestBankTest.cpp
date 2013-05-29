@@ -1,5 +1,6 @@
 
 #include "MCCIRequestBank.h"
+#include "MCCIRequestBanks.h"
 #include <string>
 #include <stdio.h>
 
@@ -165,7 +166,29 @@ void test2()
 
 }
 
+void test3()
+{
 
+    unsigned int mxc = 100;
+    
+    printf("\nAll request bank");
+    AllRequestBank              m_bank_all(100, 1);
+
+    printf("\nHost request bank");
+    HostRequestBank             m_bank_host(mxc, 20);
+
+    printf("\nVariable request bank");
+    VariableRequestBank         m_bank_var(mxc, 20);
+
+    printf("\nHost-Variable request bank");
+    HostVariableRequestBank     m_bank_hostvar(mxc, 30);
+
+    printf("\nRemote Revision (Host-Variable/Revision) request bank");
+    RemoteRevisionRequestBank   m_bank_remote(mxc, 20, 20);
+
+    printf("\nVariable/Revision request bank");
+    VariableRevisionRequestBank m_bank_varrev(mxc, 100, 20);
+}
 
 int main()
 {
@@ -173,6 +196,7 @@ int main()
     {
         test1();
         test2();
+        test3();
     }
     catch (string s)
     {
