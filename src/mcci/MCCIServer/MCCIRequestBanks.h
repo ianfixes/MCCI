@@ -39,7 +39,7 @@ class HostVariableRequestBank : public RequestBankOneKey<HostVarPair, uint32_t>
     HostVariableRequestBank(unsigned int max_clients, unsigned int size) :
     RequestBankOneKey<HostVarPair, uint32_t>(max_clients, size) { }
 
-    virtual uint32_t get_key(HostVarPair key_set) const
+    virtual uint32_t get_key(HostVarPair const key_set) const
     {
         return (key_set.host << 16) + key_set.var;
     }
@@ -47,36 +47,56 @@ class HostVariableRequestBank : public RequestBankOneKey<HostVarPair, uint32_t>
 
 
 
-class DblStuff
+typedef struct {MCCI_VARIABLE_T var; MCCI_REVISION_T rev; } VarRevPair;
+
+inline std::ostream& operator<<(std::ostream &out, VarRevPair const &rhs)
+{ return out << "(Var " << rhs.var << ", Rev " << rhs.rev << ")"; }
+  
+
+class VariableRevisionRequestBank
+: public RequestBankTwoKeys<VarRevPair, MCCI_VARIABLE_T, MCCI_REVISION_T>
 {
   public:
-    int my1key;
-    long my2key;
+  VariableRevisionRequestBank(unsigned int max_clients, unsigned int size1, unsigned int size2) :
+    RequestBankTwoKeys<VarRevPair, MCCI_VARIABLE_T, MCCI_REVISION_T> (max_clients, size1, size2) { }
 
-    DblStuff() {}
-    DblStuff(int k1, long k2) { my1key = k1; my2key = k2; }
-    ~DblStuff() {}
-    
-    friend ostream& operator << (ostream &os, const DblStuff& ds)
+    virtual MCCI_VARIABLE_T get_key_1(VarRevPair const key_set) const
     {
-        os << "(" << ds.my1key << ", " << ds.my2key << ")";
-        return os;
+        return key_set.var;
+    }
+
+    virtual MCCI_REVISION_T get_key_2(VarRevPair const key_set) const
+    {
+        return key_set.rev;
     }
 };
 
+typedef struct {MCCI_NODE_ADDRESS_T host; MCCI_VARIABLE_T var; MCCI_REVISION_T rev; } HostVarRevTuple;
 
-class DblStuffRequestBank: public RequestBankTwoKeys<DblStuff, int, long>
+inline std::ostream& operator<<(std::ostream &out, HostVarRevTuple const &rhs)
+{ return out << "(Host " << rhs.host << ", Var " << rhs.var << ", Rev " << rhs.rev << ")"; }
+
+
+
+class RemoteRevisionRequestBank
+: public RequestBankTwoKeys<HostVarRevTuple, uint32_t, MCCI_REVISION_T>
 {
   public:
-  DblStuffRequestBank(unsigned int max_clients, unsigned int num_key1s, unsigned int num_key2s)
-      : RequestBankTwoKeys<DblStuff, int, long>(max_clients, num_key1s, num_key2s) { }
-    virtual ~DblStuffRequestBank() { }
+  RemoteRevisionRequestBank(unsigned int max_clients, unsigned int size1, unsigned int size2) :
+    RequestBankTwoKeys<HostVarRevTuple, uint32_t, MCCI_REVISION_T> (max_clients, size1, size2) { }
+
+    virtual uint32_t get_key_1(HostVarRevTuple const key_set) const
+    {
+        return (key_set.host << 16) + key_set.var;
+    }
     
-    int  get_key_1(DblStuff const key_set) const { return key_set.my1key; }
-    long get_key_2(DblStuff const key_set) const { return key_set.my2key; }
+    virtual MCCI_REVISION_T get_key_2(HostVarRevTuple const key_set) const
+    {
+        return key_set.rev;
+    }
+};
 
     
-};
 
 
 
