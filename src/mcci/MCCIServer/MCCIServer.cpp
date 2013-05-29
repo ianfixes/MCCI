@@ -300,20 +300,22 @@ int CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPacke
 
 unsigned int CMCCIServer::client_free_requests_local(unsigned short client_id)
 {
+    // all outstanding requests for this client in all local banks
     return m_settings.max_local_requests - (
-        0 // m_bank_all
+        0 // m_bank_all doesn't count
         + m_bank_varrev.get_outstanding_request_count(client_id)
-        );  // FIXME
+        ); 
 }
     
 unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id)
 {
+    // all outstanding requests for this client in all remote banks
     return m_settings.max_remote_requests - (
-        0 // m_bank_all
+        0 // m_bank_all doesn't count
         + m_bank_host.get_outstanding_request_count(client_id)
         + m_bank_var.get_outstanding_request_count(client_id)
         + m_bank_hostvar.get_outstanding_request_count(client_id)
-        );  // FIXME
+        );  
 }
 
 int CMCCIServer::enforce_timeouts()
