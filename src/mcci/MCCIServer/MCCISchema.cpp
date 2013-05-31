@@ -6,11 +6,11 @@ using namespace std;
 void CMCCISchema::load(sqlite3* schema_db)
 {
     unsigned int cardinality = load_cardinality(schema_db);
-    
+
     m_ordinality.resize_nearest_prime(cardinality);
     m_name.resize(cardinality);
     m_variable.resize(cardinality);
-    
+
     // variables for calculating hash value
     unsigned char md[SHA_DIGEST_LENGTH];    
     SHA_CTX context;
@@ -34,7 +34,7 @@ void CMCCISchema::load(sqlite3* schema_db)
     if (result) throw string("Loading of data filed FIXME: result");
 
     // this is where we iterate through the schema db
-    for (int i = 0; ; i++)
+    for (unsigned int i = 0; ; i++)
     {
         result = sqlite3_step(stmt);
 
@@ -45,7 +45,7 @@ void CMCCISchema::load(sqlite3* schema_db)
         var_id = (MCCI_VARIABLE_T) sqlite3_column_int(stmt, 0);
         var_name = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
         var_pbuf = sqlite3_column_int(stmt, 2);
-        var_pbuf = sqlite3_column_int(stmt, 3);
+        var_unit = sqlite3_column_int(stmt, 3);
         
         // set lookup values
         m_ordinality[var_id] = i;
@@ -66,7 +66,6 @@ void CMCCISchema::load(sqlite3* schema_db)
     
     string ret(md, md + SHA_DIGEST_LENGTH - 1);
     this->m_hashval = ret;
-        
 }
 
 unsigned int CMCCISchema::load_cardinality(sqlite3* schema_db)
