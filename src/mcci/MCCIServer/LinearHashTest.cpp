@@ -2,6 +2,7 @@
 #include "LinearHash.h"
 #include <string>
 #include <stdio.h>
+#include <boost/cstdint.hpp>
 
 using namespace std;
 
@@ -135,14 +136,31 @@ void test_multidim_hash()
     }
 }
 
+
+void test_short_hash()
+{
+    LinearHash<uint16_t, unsigned int> m_ordinality; // ordinality
+
+    m_ordinality.resize_nearest_prime(2);
+    
+    uint16_t var_id = 1;
+    unsigned int i = 0;
+    
+    m_ordinality[var_id] = i;
+
+    var_id = 2;
+    i = 1;
+
+    m_ordinality[var_id] = i;
+}
+
 int main()
 {
     
     test_hash_sizes();
-
     test_hash_operations();
-
     test_multidim_hash();
+    test_short_hash();
     
     printf("\n\n");
     
