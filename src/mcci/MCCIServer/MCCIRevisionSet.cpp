@@ -76,7 +76,16 @@ void CMCCIRevisionSet::set_signature(string signature)
 void CMCCIRevisionSet::load(sqlite3* revision_db)
 {
     m_db = revision_db;
+
+    // this optimization is OK because it only fails if the computer crashes
+    // which is already a system failure requiring intervention
     sqlite3_exec(m_db, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
+
+    // this optimization is NOT OK because it can corrupt the database if
+    // the PROGRAM crashes.
+    // sqlite3_exec(db, "PRAGMA journal_mode = MEMORY", NULL, NULL, NULL); // don't want this
+
+    // prepare the statements that we will be using
     sqlite3_prepare_v2(m_db, "insert into revision(var_id, revision) values(?, 0)", 64, &m_insert, NULL);
     sqlite3_prepare_v2(m_db, "select revision from revision where var_id=?", 64, &m_read, NULL);
     sqlite3_prepare_v2(m_db, "update revision set revision=? where var_id=?", 64, &m_update, NULL);
@@ -129,8 +138,10 @@ MCCI_REVISION_T CMCCIRevisionSet::inc_revision(MCCI_VARIABLE_T variableID)
 {
     check_revision(variableID);
 
+    // immediate effect: memory
     ++(m_cache[variableID]);
 
+    // scheduled effect: db (delayed write, not synchronous)
     sqlite3_bind_int(m_update, 1, variableID);
     sqlite3_bind_int(m_update, 2, m_cache[variableID]);
     sqlite3_step(m_update); //TODO: check return value
