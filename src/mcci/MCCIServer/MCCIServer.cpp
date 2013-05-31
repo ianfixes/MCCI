@@ -7,7 +7,7 @@ using namespace std;
 
 
 CMCCIServer::CMCCIServer(SMCCIServerSettings settings) :
-    m_working_set(m_settings.schema->get_cardinality(), NULL),
+    m_working_set(settings.schema->get_cardinality(), NULL),
     m_bank_all(100, 1),
     m_bank_host(settings.max_clients, settings.bank_size_host),
     m_bank_var(settings.max_clients, settings.bank_size_var),
