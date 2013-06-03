@@ -7,7 +7,6 @@ SET(MCCIServer_SRCS
   MCCIRequestBank.h
   MCCIRequestBanks.h
   MCCITime.h
-  MCCITime.cpp
   MCCIRevisionSet.h
   MCCIRevisionSet.cpp
   MCCIServer.h

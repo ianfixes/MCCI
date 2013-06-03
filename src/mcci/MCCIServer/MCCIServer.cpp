@@ -5,7 +5,8 @@ using namespace std;
 
 
 
-CMCCIServer::CMCCIServer(SMCCIServerSettings settings) :
+CMCCIServer::CMCCIServer(CMCCITime* time, SMCCIServerSettings settings) :
+    m_time(time),
     m_working_set(settings.schema->get_cardinality(), NULL),
     m_bank_all(100, 1),
     m_bank_host(settings.max_clients, settings.bank_size_host),
@@ -15,6 +16,13 @@ CMCCIServer::CMCCIServer(SMCCIServerSettings settings) :
     m_bank_varrev(settings.max_clients, settings.bank_size_varrev_var, settings.bank_size_varrev_rev)
 {
     m_settings = settings;
+
+    m_external_time = (NULL != m_time);
+    if (!m_time)
+    {
+        m_time = new CMCCITimeReal();
+    }
+
 }
 
 CMCCIServer::~CMCCIServer()
@@ -24,6 +32,9 @@ CMCCIServer::~CMCCIServer()
     {
         delete (*it);
     }
+
+    // if we created it, destroy it.
+    if (!m_external_time) delete m_time;
 }
 
 ostream& operator<<(ostream& out, const CMCCIServer& rhs)
@@ -43,12 +54,12 @@ ostream& operator<<(ostream& out, const CMCCIServer& rhs)
         << "\n\t\tBank size for remote's rev:\t" << rhs.m_settings.bank_size_remote_rev
 
         << "\n\tRequest Banks:"
-        << "\n\t\t All: " << rhs.m_bank_all
-        << "\n\t\t Host: " << rhs.m_bank_host
-        << "\n\t\t Var: " << rhs.m_bank_var
+        << "\n\t\t All:     " << rhs.m_bank_all
+        << "\n\t\t Host:    " << rhs.m_bank_host
+        << "\n\t\t Var:     " << rhs.m_bank_var
         << "\n\t\t HostVar: " << rhs.m_bank_hostvar
-        << "\n\t\t Remote: " << rhs.m_bank_remote
-        << "\n\t\t VarRev: " << rhs.m_bank_varrev
+        << "\n\t\t Remote:  " << rhs.m_bank_remote
+        << "\n\t\t VarRev:  " << rhs.m_bank_varrev
                ;
 
     out << "\n\tClients (with more than 1 open request):";
@@ -115,7 +126,7 @@ void CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
     response->accepted = true;     // all requests are (or should be) OK after this
     
     // check the time 
-    if (get_mcci_time() > input->timeout)
+    if (m_time->now() > input->timeout)
     {
         return; // silently drop.  we accepted the packet that was timed out, so noop.
     }
@@ -414,20 +425,28 @@ unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id) 
 
 void CMCCIServer::enforce_timeouts()
 {
-    MCCI_TIME_T now = get_mcci_time();
+    MCCI_TIME_T now = m_time->now();
 
     //TODO: if we have a lot of removals, defer some of them until later?
     // in other words take only n of k removals if n < k, but for every deferal
     // if k > last_n then take more than n.
     
-    while (now > m_bank_all.minimum_timeout()) m_bank_all.remove_minimum();
+    while (!m_bank_all.empty() && now > m_bank_all.minimum_timeout())
+        m_bank_all.remove_minimum();
 
-    while (now > m_bank_host.minimum_timeout()) m_bank_host.remove_minimum();
+    while (!m_bank_host.empty() && now > m_bank_host.minimum_timeout())
+        m_bank_host.remove_minimum();
 
-    while (now > m_bank_var.minimum_timeout()) m_bank_var.remove_minimum();
+    while (!m_bank_var.empty() && now > m_bank_var.minimum_timeout())
+        m_bank_var.remove_minimum();
 
-    while (now > m_bank_hostvar.minimum_timeout()) m_bank_hostvar.remove_minimum();
+    while (!m_bank_hostvar.empty() && now > m_bank_hostvar.minimum_timeout())
+        m_bank_hostvar.remove_minimum();
 
-    while (now > m_bank_varrev.minimum_timeout()) m_bank_varrev.remove_minimum();
+    while (!m_bank_remote.empty() && now > m_bank_remote.minimum_timeout())
+        m_bank_remote.remove_minimum();
+    
+    while (!m_bank_varrev.empty() && now > m_bank_varrev.minimum_timeout())
+        m_bank_varrev.remove_minimum();
 }
 

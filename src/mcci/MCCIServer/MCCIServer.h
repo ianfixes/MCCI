@@ -54,10 +54,12 @@ class CMCCIServer
     HostVariableRequestBank     m_bank_hostvar;
     RemoteRevisionRequestBank   m_bank_remote;
     VariableRevisionRequestBank m_bank_varrev;
-    
+
+    CMCCITime* m_time;
+    bool m_external_time;
     
   public:
-    CMCCIServer(SMCCIServerSettings settings);
+    CMCCIServer(CMCCITime* time, SMCCIServerSettings settings);
     ~CMCCIServer();
 
     // output operator
