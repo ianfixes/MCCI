@@ -5,7 +5,7 @@
 
 #include <string.h>
 #include <sqlite3.h>
-#include <stdio.h>
+#include <iostream>
 
 using namespace std;
 
@@ -26,14 +26,14 @@ void cleanup()
 bool try_open_db(string file, sqlite3** db, int flags)
 {
     int result;
-    fprintf(stderr, "\nOpening sqlite3 db (%s)...", file.c_str());
+    cerr << "\nOpening sqlite3 db (" <<  file.c_str() << ")...";
     result = sqlite3_open_v2(file.c_str(), db, flags, NULL);
     if (SQLITE_OK != result)
     {
-        fprintf(stderr, "\nCouldn't open '%s': '%s'", file.c_str(), sqlite3_errmsg(*db));
+        cerr << "Couldn't open '" << file << "': '" << sqlite3_errmsg(*db) << "'";
         return false;
     }
-    fprintf(stderr, "OK");
+    cerr << "OK";
     return true;
 }
 
@@ -56,13 +56,13 @@ int main(int argc, char* argv[])
 
     try
     {
-        fprintf(stderr, "\nCreating schema object...");
+        cerr << "\nCreating schema object...";
         schema = new CMCCISchema(schema_db);
-        fprintf(stderr, "OK %p", schema);
+        cerr << "OK " << schema;
 
-        fprintf(stderr, "\nCreating revisionset object...");
+        cerr << "\nCreating revisionset object...";
         rs     = new CMCCIRevisionSet(rs_db, schema->get_cardinality(), "signature");
-        fprintf(stderr, "OK");
+        cerr << "OK";
             
         // build settings struct
         SMCCIServerSettings settings;
@@ -84,30 +84,40 @@ int main(int argc, char* argv[])
         settings.schema = schema;
         settings.revisionset = rs;
 
-        fprintf(stderr, "\nCreating server instance...");
+        cerr << "\nCreating server instance...";
         my_server = new CMCCIServer(settings);
-        fprintf(stderr, "OK");
+        cerr << "OK";
         
         cleanup();
     }
     catch (std::bad_alloc ba)
     {
-        fprintf(stderr, "\nGot exception '%s'", ba.what());
+        cerr << "\nGot exception '" <<  ba.what() << "'";
     }
     catch (string s)
     {
-        fprintf(stderr, "\n\nGot error: %s\n\n", s.c_str());
+        cerr << "\n\nGot error: " << s << "\n\n";
     }
     catch (...)
     {
-        fprintf(stderr, "\n well... we caught some error");
+        cerr << "\n well... we caught some error";
     }
 
-    fprintf(stderr, "\n---------------- LET THE TESTING BEGIN\n");
+    cerr << "\n---------------- LET THE TESTING BEGIN\n";
     
-    fprintf(stderr, "\n%s", my_server->summary().c_str());
+    cerr << "\n" << *my_server;
+
+    MCCI_CLIENT_ID_T myclient_id = 37;
+    /*
+    my_server->process_request(myclient_id
+                               const SMCCIRequestPacket* input,
+                               SMCCIResponsePacket* response)
+    */
+    cerr << "\n" << *my_server;
     
-    fprintf(stderr, "\n\n");
+
+        
+    cerr << "\n\n";
     return 0;
     
 }
