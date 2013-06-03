@@ -17,6 +17,14 @@ CMCCIServer::CMCCIServer(SMCCIServerSettings settings) :
     m_settings = settings;
 }
 
+CMCCIServer::~CMCCIServer()
+{
+    vector<SMCCIDataPacket*>::iterator it;
+    for (it = m_working_set.begin(); it!= m_working_set.end(); ++it)
+    {
+        delete (*it);
+    }
+}
 
 ostream& operator<<(ostream& out, const CMCCIServer& rhs)
 {

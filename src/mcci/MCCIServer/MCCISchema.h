@@ -27,8 +27,8 @@ class CMCCISchema
 {
 
   public:
-    CMCCISchema(sqlite3* schema_db) { this->load(schema_db); };
-    ~CMCCISchema();
+    CMCCISchema(sqlite3* schema_db) { this->load(schema_db); }
+    ~CMCCISchema() {}
 
     // populate the db
     void load(sqlite3* schema_db);
@@ -36,10 +36,10 @@ class CMCCISchema
     unsigned int load_cardinality(sqlite3* schema_db);
     
     // get a hash that describes the working variable set
-    string get_hash() { return m_hashval; };
+    string get_hash() { return m_hashval; }
 
     // the number of variables being used
-    unsigned int get_cardinality() { return m_name.size(); }; 
+    unsigned int get_cardinality() { return m_name.size(); }
 
     // the ordinality of a variable
     unsigned int ordinality_of_variable(MCCI_VARIABLE_T variable_id)
@@ -52,7 +52,7 @@ class CMCCISchema
     
     // lookup the name of a variable
     string name_of_variable(MCCI_VARIABLE_T variable_id)
-    { return m_name.at(ordinality_of_variable(variable_id)); };
+    { return m_name.at(ordinality_of_variable(variable_id)); }
 
                             
   protected:
