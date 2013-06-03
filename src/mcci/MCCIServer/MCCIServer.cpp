@@ -1,7 +1,6 @@
 
 #include "MCCIServer.h"
 
-
 using namespace std;
 
 
@@ -18,7 +17,71 @@ CMCCIServer::CMCCIServer(SMCCIServerSettings settings) :
     m_settings = settings;
 }
 
-bool CMCCIServer::is_rejectable_request(const SMCCIRequestPacket* input)
+
+ostream& operator<<(ostream& out, const CMCCIServer& rhs)
+{
+    out << "MCCIServer Summary:"
+        << "\n\tSettings:"
+        << "\n\t\tNode Address:\t" << rhs.m_settings.my_node_address
+        << "\n\t\tMax local requests:\t" << rhs.m_settings.max_local_requests
+        << "\n\t\tMax remote requests:\t" << rhs.m_settings.max_remote_requests
+        << "\n\t\tMax Clients:\t" << rhs.m_settings.max_clients
+        << "\n\t\tBank size for host:\t" << rhs.m_settings.bank_size_host
+        << "\n\t\tBank size for var:\t" << rhs.m_settings.bank_size_var
+        << "\n\t\tBank size for host+var:\t" << rhs.m_settings.bank_size_hostvar
+        << "\n\t\tBank size for var/rev's var:\t" << rhs.m_settings.bank_size_varrev_var
+        << "\n\t\tBank size for var/rev's rev:\t" << rhs.m_settings.bank_size_varrev_rev
+        << "\n\t\tBank size for remote's host+var:\t" << rhs.m_settings.bank_size_remote_hostvar
+        << "\n\t\tBank size for remote's rev:\t" << rhs.m_settings.bank_size_remote_rev
+
+        << "\n\tRequest Banks:"
+        << "\n\t\t All: " << rhs.m_bank_all
+        << "\n\t\t Host: " << rhs.m_bank_host
+        << "\n\t\t Var: " << rhs.m_bank_var
+        << "\n\t\t HostVar: " << rhs.m_bank_hostvar
+        << "\n\t\t Remote: " << rhs.m_bank_remote
+        << "\n\t\t VarRev: " << rhs.m_bank_varrev
+               ;
+
+    out << "\n\tClients (with more than 1 open request):";
+    for (int i = 0; i < rhs.m_settings.max_clients; ++i)
+    {
+        //FIXME: maybe convert to client existence function
+        int req_loc = rhs.m_settings.max_local_requests - rhs.client_free_requests_local(i);
+        int req_rem = rhs.m_settings.max_remote_requests - rhs.client_free_requests_remote(i);
+
+        if (req_loc || req_rem)
+        {
+            out << "\n\t\t" << i << ":\t"
+                << req_loc << " local requests, "
+                << req_rem << " remote requests";
+        }
+    }
+    
+    
+    out << "\n\tWorking Set:";
+    for (int i = 0; i < rhs.m_settings.schema->get_cardinality(); ++i)
+    {
+        MCCI_VARIABLE_T var_id = rhs.m_settings.schema->variable_of_ordinal(i);
+        if (rhs.is_in_working_set(var_id))
+        {
+            out << "\n\t\t" << rhs.m_settings.schema->name_of_variable(var_id);
+        }
+    }
+    
+    return out;
+}
+
+
+string CMCCIServer::summary()
+{
+    stringstream s;
+    s << (*this);
+    return s.str();
+}
+
+
+bool CMCCIServer::is_rejectable_request(const SMCCIRequestPacket* input) const
 {
     return 0 < input->revision && (
         // requests with a sequence number but no variable
@@ -321,7 +384,7 @@ void CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPack
 }
 
 
-unsigned int CMCCIServer::client_free_requests_local(unsigned short client_id)
+unsigned int CMCCIServer::client_free_requests_local(unsigned short client_id) const
 {
     // all outstanding requests for this client in all local banks
     return m_settings.max_local_requests - (
@@ -330,7 +393,7 @@ unsigned int CMCCIServer::client_free_requests_local(unsigned short client_id)
         ); 
 }
     
-unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id)
+unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id) const
 {
     // all outstanding requests for this client in all remote banks
     return m_settings.max_remote_requests - (

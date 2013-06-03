@@ -10,6 +10,7 @@
 #pragma once
 
 #include <iostream>
+#include <sstream>
 #include <vector>
 using namespace std;
 
@@ -65,6 +66,12 @@ template <typename Key, typename Data> class FibonacciHeapNode
 }; // FibonacciHeapNode
 
 
+// declare class to enable declaration of ostream operator
+template <typename Key, typename Data> class FibonacciHeap;
+template <typename Key, typename Data>
+    ostream& operator<<(ostream &, const FibonacciHeap<Key, Data> &);
+
+
 
 template <typename Key, typename Data> class FibonacciHeap 
 {
@@ -84,6 +91,9 @@ template <typename Key, typename Data> class FibonacciHeap
     FibonacciHeap();
     
     ~FibonacciHeap() { while (!empty()) remove_minimum(); }; // TODO: can do this more efficiently
+
+    friend ostream& operator<< <>(ostream& output, const FibonacciHeap<Key, Data>& v);
+    string summary() const;
     
     bool empty() const { return 0 == m_count; };
 
@@ -255,6 +265,22 @@ template <typename Key, typename Data>
 }
 
 
+template <typename Key, typename Data>
+    ostream& operator<<(ostream& output, const FibonacciHeap<Key, Data>& v)
+{
+    v.print_roots(output);
+    return output;
+}
+
+
+template <typename Key, typename Data>
+    string FibonacciHeap<Key, Data>::summary() const
+{
+    stringstream s;
+    print_roots(s);
+    return s.str();
+}
+
 
 template <typename Key, typename Data>
     FibonacciHeapNode<Key, Data>* FibonacciHeap<Key, Data>::insert_node(FibonacciHeapNode<Key, Data>* new_node) 
@@ -294,7 +320,7 @@ template <typename Key, typename Data>
 template <typename Key, typename Data>
     void FibonacciHeap<Key, Data>::print_roots(ostream& out) const 
 {
-    out << "\nm_max_degree=" << m_max_degree << "  m_count=" << m_count << "  roots=";
+    out << "m_max_degree=" << m_max_degree << "  m_count=" << m_count << "  roots=";
     if (m_root_with_min_key)
         m_root_with_min_key->print_all(out);
 }
@@ -355,7 +381,8 @@ template <typename Key, typename Data>
     
     if (m_debug_remove_min) 
     {
-        cerr << "\n  roots after inserting children: "; 
+        cerr << "\n  roots after inserting children: ";
+        cerr << "\n";
         print_roots(cerr);
     }
 

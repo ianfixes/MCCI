@@ -9,6 +9,7 @@
 #include <map>
 #include <vector>
 #include <sqlite3.h>
+#include <ostream>
 //#include <unordered_map> // replace with boost?
 
 
@@ -36,8 +37,6 @@ typedef struct
 
 
 
-
-
 /**
    This class is the logical component of the MCCI system's packet request & delivery system.
  */
@@ -60,6 +59,12 @@ class CMCCIServer
   public:
     CMCCIServer(SMCCIServerSettings settings);
     ~CMCCIServer();
+
+    // output operator
+    friend ostream& operator<<(ostream &out, CMCCIServer const &rhs);
+
+    // string version of output
+    string summary();
     
     // accept a request packet, and put its contents in the appropriate structures, responding accordingly
     void process_request(MCCI_CLIENT_ID_T requestor_id,
@@ -76,25 +81,24 @@ class CMCCIServer
                             SMCCIAcceptancePacket* output);
 
     // tell the client how many requests it is allowed to make
-    unsigned int client_free_requests_local(MCCI_CLIENT_ID_T client_id);
-    //{ return m_settings.max_local_requests - m_outstanding_requests_local[client_id]; }
+    unsigned int client_free_requests_local(MCCI_CLIENT_ID_T client_id) const;
     
-    unsigned int client_free_requests_remote(MCCI_CLIENT_ID_T client_id);
-    //{ return m_settings.max_remote_requests - m_outstanding_requests_remote[client_id]; }
+    unsigned int client_free_requests_remote(MCCI_CLIENT_ID_T client_id) const;
 
     // remove all expired requests and update the outstanding_requests counters appropriately
     void enforce_timeouts();
-    
+
   protected:
 
     // whether an address is equivalent to "localhost"
-    bool is_my_address(MCCI_NODE_ADDRESS_T address) { return 0 == address || address == m_settings.my_node_address; };
+    bool is_my_address(MCCI_NODE_ADDRESS_T address) const
+    { return 0 == address || address == m_settings.my_node_address; };
     
     // whether a variable id has delivered its first value
-    bool is_in_working_set(MCCI_VARIABLE_T variable_id)
+    bool is_in_working_set(MCCI_VARIABLE_T variable_id) const
     {
         unsigned int idx = m_settings.schema->ordinality_of_variable(variable_id);
-        return NULL != m_working_set[idx];
+        return NULL != m_working_set.at(idx);
     }
 
     SMCCIDataPacket* get_working_variable(MCCI_VARIABLE_T variable_id)
@@ -111,7 +115,7 @@ class CMCCIServer
     }
     
     // whether a request has one of the 4 possible input combinations that makes it wrong
-    bool is_rejectable_request(const SMCCIRequestPacket* input);
+    bool is_rejectable_request(const SMCCIRequestPacket* input) const;
 
     // slave to process_request, for the cases that involve forwarding
     void process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,

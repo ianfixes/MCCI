@@ -10,6 +10,12 @@
 
 using namespace std;
 
+// declare class to enable declaration of ostream operator
+template <typename KeySet> class RequestBank;
+template <typename KeySet>
+ostream& operator<<(ostream &, const RequestBank<KeySet>&);
+
+
 /**
    This templated base class defines a set of requests that can be added by a
    given key (key set, implementation depending), and removed both by the key 
@@ -30,7 +36,6 @@ class RequestBank
     friend std::ostream& operator<<(std::ostream &out, LookupSet const &rhs)
     { return out << "(key_set " << rhs.key_set << ", client_id " << rhs.client_id << ")"; }
 
-    
     // holds the time-sensitive view of the data
     typedef FibonacciHeapNode<MCCI_TIME_T, LookupSet> HeapNode;
 
@@ -56,6 +61,10 @@ class RequestBank
     }
     
     virtual ~RequestBank() { delete[] this->m_outstanding_requests; }
+
+    friend std::ostream& operator<<(ostream &out, RequestBank<KeySet> const &rhs)
+    { return out << rhs.m_timeouts; }
+    
     
     // developer tool to check sanity of a RequestBank
     //virtual bool check_sanity() const = 0;

@@ -9,7 +9,7 @@
 
 using namespace std;
 
-CMCCIServer* myServer;
+CMCCIServer* my_server;
 
 
 sqlite3* schema_db = NULL;
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
         settings.revisionset = rs;
 
         fprintf(stderr, "\nCreating server instance...");
-        myServer = new CMCCIServer(settings);
+        my_server = new CMCCIServer(settings);
         fprintf(stderr, "OK");
         
         cleanup();
@@ -103,9 +103,9 @@ int main(int argc, char* argv[])
         fprintf(stderr, "\n well... we caught some error");
     }
 
-    fprintf(stderr, "\n---------------- LET THE TESTING BEGIN");
+    fprintf(stderr, "\n---------------- LET THE TESTING BEGIN\n");
     
-    
+    fprintf(stderr, "\n%s", my_server->summary().c_str());
     
     fprintf(stderr, "\n\n");
     return 0;
