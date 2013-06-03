@@ -79,7 +79,20 @@ void doTest()
         h.remove_minimum(); 
         h.print_roots(cout);
     }
-        
+
+    cout << "\nAdd one node:\n";
+    nodes[0] = h.insert(400, "a");
+    nodes[1] = h.insert(350, "3fiddy");
+    h.print_roots(cout);
+
+    cout << "\nAlter one key:\n";
+    h.alter_key(nodes[0], 300, 0);
+    h.print_roots(cout);
+    
+    cout << "\nAlter one key:\n";
+    h.alter_key(nodes[0], 300, 0);
+    h.print_roots(cout);
+    
     cout << endl << endl;
 }
 
