@@ -90,7 +90,7 @@ void doTest()
     h.print_roots(cout);
     
     cout << "\nAlter one key:\n";
-    h.alter_key(nodes[0], 300, 0);
+    h.alter_key(nodes[1], 250, 0);
     h.print_roots(cout);
     
     cout << endl << endl;

@@ -84,6 +84,7 @@ template <typename Key, typename Data> class FibonacciHeap
     uint m_max_degree;  // maximum degree (=child count) of a root in the  circular d-list
     
     PNodePtr insert_node(PNodePtr new_node);
+    void remove_minimum_h(bool delete_node); 
     
   public:
     bool m_debug, m_debug_remove_min, m_debug_decrease_key;
@@ -350,6 +351,12 @@ template <typename Key, typename Data>
 
 template <typename Key, typename Data>
     void FibonacciHeap<Key, Data>::remove_minimum() 
+{
+    remove_minimum_h(true);
+}
+    
+template <typename Key, typename Data>
+    void FibonacciHeap<Key, Data>::remove_minimum_h(bool delete_node) 
 {  // Fibonacci-Heap-Extract-Min, CONSOLIDATE
 
     if (!m_root_with_min_key)
@@ -394,7 +401,7 @@ template <typename Key, typename Data>
         if (m_debug_remove_min) cerr << "\n  removed the last";
         if (m_count != 0)
             throw string ("Internal error: should have 0 keys");
-        delete m_root_with_min_key;
+        if (delete_node) delete m_root_with_min_key;
         m_root_with_min_key = NULL;
         if (m_debug_remove_min) cerr << "\n  removal complete";
         return;
@@ -447,7 +454,7 @@ template <typename Key, typename Data>
     while (current_pointer != m_root_with_min_key);
 
     /// Phase 3: remove the current root, and calcualte the new m_root_with_min_key:
-    delete m_root_with_min_key;
+    if (delete_node) delete m_root_with_min_key;
     m_root_with_min_key = NULL;
 
     uint new_max_degree = 0;
@@ -489,7 +496,8 @@ template <typename Key, typename Data>
     // remove and re-insert if new key is more
     if (new_key > node->m_key)
     {
-        remove(node, minus_infinity);
+        decrease_key(node, minus_infinity);
+        remove_minimum_h(false);
         node->m_key = new_key;
         insert_node(node);
     }
@@ -555,6 +563,7 @@ template <typename Key, typename Data>
         }
     };
 }
+
 
 
 template <typename Key, typename Data>
