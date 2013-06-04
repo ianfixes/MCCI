@@ -96,6 +96,7 @@ int init(bool debug)
         if (debug) cerr << "\nCreating server instance...";
         my_server = new CMCCIServer((CMCCITime*)&fake_time, settings);
         if (debug) cerr << "OK";
+        if (debug) cerr << "\n" << my_server->get_settings();
         
     }
     catch (std::bad_alloc ba)
@@ -118,6 +119,8 @@ int init(bool debug)
 // generalized do_test function
 int do_test(string name, int (*test_fn)(void))
 {
+    bool no_error = false;
+    
     if (int init_ret = init(false))
     {
         cerr << "\ninit() got code " << init_ret << "; exiting\n\n";
@@ -126,16 +129,31 @@ int do_test(string name, int (*test_fn)(void))
     }
 
     cerr << "\n\n---------------- LET THE TESTING BEGIN: " << name << "\n";
-    if (int test_ret = test_fn())
+    try
     {
-        cerr << "\ntest_fn '" << name << "' got code " << test_ret << "; exiting\n\n";
-        cleanup();
-        return test_ret;
+        if (int test_ret = test_fn())
+        {
+            cerr << "\ntest_fn '" << name << "' got code " << test_ret << "; exiting\n\n";
+            cleanup();
+            assert(0 == test_ret);
+        }
+    }
+    catch (string s)
+    {
+        cerr << "\n\nTest " << name << " got error: " << s << "\n\n";
+        assert(no_error);
+    }
+    catch (...)
+    {
+        cerr << "\n Test " << name << " caught some error";
+        assert(no_error);
     }
 
     cerr << "\n -- Test " << name << " done ";
     cleanup();
     cerr << "and cleaned up";
+
+    return 0;
     
 }
 
@@ -145,51 +163,111 @@ int test0()
     return 0;
 }
 
-int test_rb_all()
+// request is a request packet, impacts are how many req slots we expect the packet to occupy
+int test_rb_basic(SMCCIRequestPacket request, int local_impact, int remote_impact)
 {
     MCCI_CLIENT_ID_T myclient_id = 37;
     SMCCIServerSettings settings = my_server->get_settings();
     fake_time.set_now(12344);
-    
-    SMCCIRequestPacket request;
-    request.timeout = fake_time.now();
-    request.node_address = MCCI_HOST_ANY;
-    request.variable_id = 0;
-    request.revision = 0;
-    request.quantity = 1;
 
+    request.timeout = fake_time.now();
+    
     SMCCIResponsePacket response;
     response.accepted = false;
     response.requests_remaining_local = 0;
     response.requests_remaining_remote = 0;
 
-    cerr << "\nTesting request acceptance";
+    cerr << "\nTesting request acceptance: ";
     request.timeout = fake_time.now() + 1;
     my_server->process_request(myclient_id, &request, &response);
+    cerr << response;
     assert(response.accepted);
-    // requests for ALL don't count against totals!
-    assert(settings.max_local_requests == response.requests_remaining_local);
-    assert(settings.max_remote_requests == response.requests_remaining_remote);
+    assert(settings.max_local_requests == response.requests_remaining_local + local_impact);
+    assert(settings.max_remote_requests == response.requests_remaining_remote + remote_impact);
 
-    cerr << "\nenforcing timeouts";
+
+    cerr << "\nenforcing timeouts after a request w/ future timeout: " << response;
     my_server->enforce_timeouts();
+    cerr << "\n" << *my_server;
     
-    cerr << "\nTesting request alteration";
+    cerr << "\nTesting request alteration: ";
     request.timeout = fake_time.now() - 1;
     my_server->process_request(myclient_id, &request, &response);
+    cerr << response;
     assert(response.accepted);
-    assert(settings.max_local_requests == response.requests_remaining_local);
-    assert(settings.max_remote_requests == response.requests_remaining_remote);
+    assert(settings.max_local_requests == response.requests_remaining_local + local_impact);
+    assert(settings.max_remote_requests == response.requests_remaining_remote + remote_impact);
 
-    cerr << "\nAfter processing a request for ALL: " << response << "\n" << *my_server;
+    cerr << "\nAfter altering a request to a past timeout: " << response << "\n" << *my_server;
 
     
     cerr << "\nenforcing timeouts";
     my_server->enforce_timeouts();
     
-    cerr << "\nAfter processing a request for ALL:\n" << *my_server;
+    cerr << "\nAfter enforcing timeouts:\n" << *my_server;
     return 0;
 }
+
+int test_rb_all()
+{    
+    SMCCIRequestPacket request;
+    request.node_address = MCCI_HOST_ANY;
+    request.variable_id = 0;
+    request.revision = 0;
+    request.quantity = 1;
+
+    // requests for ALL don't count against totals!
+    return test_rb_basic(request, 0, 0);
+}
+
+int test_rb_host()
+{    
+    SMCCIRequestPacket request;
+    request.node_address = 88;
+    request.variable_id = 0;
+    request.revision = 0;
+    request.quantity = 1;
+
+    // host requests count against the remote
+    return test_rb_basic(request, 0, 1);
+}
+
+int test_rb_host_loc()
+{    
+    SMCCIRequestPacket request;
+    request.node_address = 0;
+    request.variable_id = 0;
+    request.revision = 0;
+    request.quantity = 1;
+
+    // host requests count against remote
+    return test_rb_basic(request, 0, 1);
+}
+
+int test_rb_var()
+{    
+    SMCCIRequestPacket request;
+    request.node_address = MCCI_HOST_ANY;
+    request.variable_id = 1;
+    request.revision = 0;
+    request.quantity = 1;
+
+    // variable requests count against remote
+    return test_rb_basic(request, 0, 1);
+}
+
+int test_rb_hostvar()
+{    
+    SMCCIRequestPacket request;
+    request.node_address = 88;
+    request.variable_id = 1;
+    request.revision = 0;
+    request.quantity = 1;
+
+    // host/variable requests count against remote
+    return test_rb_basic(request, 0, 1);
+}
+
 
 
 int main(int argc, char* argv[])
@@ -206,6 +284,10 @@ int main(int argc, char* argv[])
 
     do_test("test0", test0);
     do_test("test_rb_all", test_rb_all);
+    do_test("test_rb_host", test_rb_host);
+    do_test("test_rb_host_loc", test_rb_host_loc);
+    do_test("test_rb_var", test_rb_var);
+    do_test("test_rb_hostvar", test_rb_hostvar);
 
     
     cerr << "\n\n";
