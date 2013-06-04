@@ -21,7 +21,7 @@ class SinglePassthruKeyRequestBank : public RequestBankOneKey<KeySet, KeySet>
     virtual KeySet get_key(KeySet const key_set) const { return key_set; }
 };
 
-typedef SinglePassthruKeyRequestBank<MCCI_CLIENT_ID_T>    AllRequestBank;
+typedef SinglePassthruKeyRequestBank<bool>                AllRequestBank;
 typedef SinglePassthruKeyRequestBank<MCCI_NODE_ADDRESS_T> HostRequestBank;
 typedef SinglePassthruKeyRequestBank<MCCI_VARIABLE_T>     VariableRequestBank;
 
