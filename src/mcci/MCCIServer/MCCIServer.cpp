@@ -37,21 +37,29 @@ CMCCIServer::~CMCCIServer()
     if (!m_external_time) delete m_time;
 }
 
+ostream& operator<<(ostream& out, const SMCCIServerSettings& rhs)
+{
+    return out 
+        << "MCCIServer Settings:"
+        << "\n\tNode Address:\t" << rhs.my_node_address
+        << "\n\tMax local requests:\t" << rhs.max_local_requests
+        << "\n\tMax remote requests:\t" << rhs.max_remote_requests
+        << "\n\tMax Clients:\t" << rhs.max_clients
+        << "\n\tBank size for host:\t" << rhs.bank_size_host
+        << "\n\tBank size for var:\t" << rhs.bank_size_var
+        << "\n\tBank size for host+var:\t" << rhs.bank_size_hostvar
+        << "\n\tBank size for var/rev's var:\t" << rhs.bank_size_varrev_var
+        << "\n\tBank size for var/rev's rev:\t" << rhs.bank_size_varrev_rev
+        << "\n\tBank size for remote's host+var:\t" << rhs.bank_size_remote_hostvar
+        << "\n\tBank size for remote's rev:\t" << rhs.bank_size_remote_rev
+        ;
+
+}
+
+
 ostream& operator<<(ostream& out, const CMCCIServer& rhs)
 {
     out << "MCCIServer Summary:"
-        << "\n\tSettings:"
-        << "\n\t\tNode Address:\t" << rhs.m_settings.my_node_address
-        << "\n\t\tMax local requests:\t" << rhs.m_settings.max_local_requests
-        << "\n\t\tMax remote requests:\t" << rhs.m_settings.max_remote_requests
-        << "\n\t\tMax Clients:\t" << rhs.m_settings.max_clients
-        << "\n\t\tBank size for host:\t" << rhs.m_settings.bank_size_host
-        << "\n\t\tBank size for var:\t" << rhs.m_settings.bank_size_var
-        << "\n\t\tBank size for host+var:\t" << rhs.m_settings.bank_size_hostvar
-        << "\n\t\tBank size for var/rev's var:\t" << rhs.m_settings.bank_size_varrev_var
-        << "\n\t\tBank size for var/rev's rev:\t" << rhs.m_settings.bank_size_varrev_rev
-        << "\n\t\tBank size for remote's host+var:\t" << rhs.m_settings.bank_size_remote_hostvar
-        << "\n\t\tBank size for remote's rev:\t" << rhs.m_settings.bank_size_remote_rev
 
         << "\n\tRequest Banks:"
         << "\n\t\t All:     " << rhs.m_bank_all
