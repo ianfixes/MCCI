@@ -35,6 +35,7 @@ typedef struct
 
 } SMCCIServerSettings;
 
+ostream& operator<<(ostream &out, SMCCIServerSettings const &rhs);
 
 
 /**
@@ -95,6 +96,12 @@ class CMCCIServer
     
   protected:
 
+    void set_free_requests(SMCCIResponsePacket* response, MCCI_CLIENT_ID_T requestor_id) const
+    {
+        response->requests_remaining_local  = client_free_requests_local(requestor_id);
+        response->requests_remaining_remote = client_free_requests_remote(requestor_id);
+    }
+    
     // whether an address is equivalent to "localhost"
     bool is_my_address(MCCI_NODE_ADDRESS_T address) const
     { return 0 == address || address == m_settings.my_node_address; };
