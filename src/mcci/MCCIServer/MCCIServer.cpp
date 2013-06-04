@@ -134,6 +134,7 @@ void CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
                                   const SMCCIRequestPacket* input,
                                   SMCCIResponsePacket* response)
 {
+    // pre-fill these because we use them for flags right now
     response->requests_remaining_local  = client_free_requests_local(requestor_id);
     response->requests_remaining_remote = client_free_requests_remote(requestor_id);
     
@@ -141,7 +142,7 @@ void CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
     if (is_rejectable_request(input))
     {
         response->accepted = false;
-        return;
+        return set_free_requests(response, requestor_id);
     }
     response->accepted = true;     // all requests are (or should be) OK after this
     
@@ -150,7 +151,8 @@ void CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
     // if subscribing to ALL nodes
     if (MCCI_HOST_ANY == input->node_address) 
     {
-        if (!response->requests_remaining_remote) return; // basically just drop silently
+        // drop request silently if we are full
+        if (!response->requests_remaining_remote) return set_free_requests(response, requestor_id);
         
         if (0 == input->variable_id)
         {
@@ -163,18 +165,22 @@ void CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
             subscribe_to_variable(requestor_id, input->timeout, input->variable_id); 
         }
 
-        response->requests_remaining_remote = client_free_requests_remote(requestor_id);
-        return;
+        //response->requests_remaining_remote = client_free_requests_remote(requestor_id);
+        return set_free_requests(response, requestor_id);
     }
     
     // subscribing to one node that may be local or remote
     if (0 == input->variable_id && 0 == input->revision)
     {
-        if (!response->requests_remaining_remote) return; // silently drop request
+        // drop request silently if we are full
+        if (!response->requests_remaining_remote) return set_free_requests(response, requestor_id);
         
-        subscribe_to_host(requestor_id, input->timeout, input->node_address);
-        response->requests_remaining_remote -= 1;
-        return;
+        // fill in real address of host (if wildcarded)
+        MCCI_NODE_ADDRESS_T real_address;
+        real_address = input->node_address ? input->node_address : m_settings.my_node_address;
+        subscribe_to_host(requestor_id, input->timeout, real_address);
+
+        return set_free_requests(response, requestor_id);
     }
     
     process_forwardable_request(requestor_id, input, response);
@@ -195,12 +201,13 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
     if (!is_for_me && 0 == input->revision)
     {
         // silently drop if we have no more requests
-        if (response->requests_remaining_remote)
+        if (response->requests_remaining_remote) 
         {
             subscribe_to_host_var(requestor_id, input->timeout, input->node_address, input->variable_id);
             forward_request(requestor_id, input);
         }
-        return;
+
+        return set_free_requests(response, requestor_id);
     }           
     // guaranteed to have a measurable value for revision=0 at this point
     
@@ -255,6 +262,7 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
     }
 
 
+    /*
     // decrement the remaining requests
     unsigned int rem;
     if (is_for_me)
@@ -267,13 +275,16 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
         rem = response->requests_remaining_remote;
         response->requests_remaining_remote = quantity <= rem ? rem - quantity : 0;
     }
-
+    */
+    
     // we are forwarding a request that might be for more packets than available
     //  subscription slots.  i think this is ok, since the send ordering is preserved
     //  and it's possible that the slots will clear (for re-request) before the later
     //  packets arrive.
     
     if (do_forward) forward_request(requestor_id, input);
+
+    return set_free_requests(response, requestor_id);
 
 }
 
