@@ -321,12 +321,12 @@ void CMCCIServer::subscribe_to_host_var(MCCI_CLIENT_ID_T client_id,
 
 void CMCCIServer::subscribe_specific_remote(MCCI_CLIENT_ID_T client_id,
                                             MCCI_TIME_T timeout,
-                                            MCCI_NODE_ADDRESS_T host,
+                                            MCCI_NODE_ADDRESS_T node_address,
                                             MCCI_VARIABLE_T variable_id,
                                             MCCI_REVISION_T revision)
 {
     HostVarRevTuple hvr;
-    hvr.host = host;
+    hvr.host = node_address;
     hvr.var = variable_id;
     hvr.rev = revision;
     m_bank_remote.add(hvr, client_id, timeout);
@@ -344,6 +344,56 @@ void CMCCIServer::subscribe_specific(MCCI_CLIENT_ID_T client_id,
     m_bank_varrev.add(vr, client_id, timeout);
 }
 
+
+
+bool CMCCIServer::bank_contains_variable(MCCI_CLIENT_ID_T client_id,
+                                         MCCI_VARIABLE_T variable_id) const
+{
+    return m_bank_var.contains(variable_id, client_id);
+}
+    
+
+bool CMCCIServer::bank_contains_host(MCCI_CLIENT_ID_T client_id, 
+                                     MCCI_NODE_ADDRESS_T node_address) const
+{
+    return m_bank_host.contains(node_address, client_id);    
+}
+
+
+bool CMCCIServer::bank_contains_host_var(MCCI_CLIENT_ID_T client_id,
+                                         MCCI_NODE_ADDRESS_T node_address,
+                                         MCCI_VARIABLE_T variable_id) const
+{
+    HostVarPair hv;
+    hv.host = node_address;
+    hv.var = variable_id;
+    return m_bank_hostvar.contains(hv, client_id);
+}
+
+
+bool CMCCIServer::bank_contains_specific(MCCI_CLIENT_ID_T client_id,
+                                         MCCI_VARIABLE_T variable_id,
+                                         MCCI_REVISION_T revision) const
+{
+    VarRevPair vr;
+    vr.var = variable_id;
+    vr.rev = revision;
+    return m_bank_varrev.contains(vr, client_id);
+}
+
+bool CMCCIServer::bank_contains_specific_remote(MCCI_CLIENT_ID_T client_id,
+                                                MCCI_NODE_ADDRESS_T node_address,
+                                                MCCI_VARIABLE_T variable_id,
+                                                MCCI_REVISION_T revision) const
+{
+    HostVarRevTuple hvr;
+    hvr.host = node_address;
+    hvr.var = variable_id;
+    hvr.rev = revision;
+    return m_bank_remote.contains(hvr, client_id);
+
+}
+    
 
 void CMCCIServer::process_production(MCCI_CLIENT_ID_T provider_id,
                                      const SMCCIProductionPacket* input,

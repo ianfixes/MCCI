@@ -169,6 +169,31 @@ class CMCCIServer
                                    MCCI_NODE_ADDRESS_T node_address,
                                    MCCI_VARIABLE_T variable_id,
                                    MCCI_REVISION_T revision);
+
+    
+    // check client subscription to variable
+    bool bank_contains_variable(MCCI_CLIENT_ID_T client_id,
+                                MCCI_VARIABLE_T variable_id) const;
+    
+    // check client subscription to host
+    bool bank_contains_host(MCCI_CLIENT_ID_T client_id, 
+                            MCCI_NODE_ADDRESS_T node_address) const;
+
+    // check client subscription to host / var
+    bool bank_contains_host_var(MCCI_CLIENT_ID_T client_id,
+                                MCCI_NODE_ADDRESS_T node_address,
+                                MCCI_VARIABLE_T variable_id) const;
+
+    // check client subscription to a specific local variable + revision
+    bool bank_contains_specific(MCCI_CLIENT_ID_T client_id,
+                                MCCI_VARIABLE_T variable_id,
+                                MCCI_REVISION_T revision) const;
+    
+    // check client subscrition to a specific remote host + var + revision
+    bool bank_contains_specific_remote(MCCI_CLIENT_ID_T client_id,
+                                       MCCI_NODE_ADDRESS_T node_address,
+                                       MCCI_VARIABLE_T variable_id,
+                                       MCCI_REVISION_T revision) const;
     
 
 };

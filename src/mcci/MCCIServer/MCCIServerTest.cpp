@@ -272,7 +272,8 @@ int test_rb_hostvar()
 
 int main(int argc, char* argv[])
 {
-    cerr << "\nTesting init/cleanup routine";
+    cerr << "\n================= Testing init/cleanup routine =================";
+    cerr << "==================================================================";
     if (int init_ret = init(true))
     {
         cerr << "\ninit() got code " << init_ret << "; exiting\n\n";
