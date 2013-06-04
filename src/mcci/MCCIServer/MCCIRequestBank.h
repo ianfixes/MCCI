@@ -172,14 +172,18 @@ class RequestBank
     // iteration points: begin
     subscriber_iterator subscribers_begin(KeySet const key_set) const
     {
-        return this->get_by_pq(key_set)->begin();
+        SubscriptionMap* sm = this->get_by_pq(key_set);
+        if (sm) return sm->begin();
+        return subscriber_iterator();
     }
 
     // iteration points: begin
     subscriber_iterator subscribers_end(KeySet const key_set) const
     {
-        return this->get_by_pq(key_set)->end();
-    }
+        SubscriptionMap* sm = this->get_by_pq(key_set);
+        if (sm) return sm->end();
+        return subscriber_iterator();
+   }
     
   protected:
 
