@@ -20,7 +20,7 @@ CMCCIServer::CMCCIServer(CMCCITime* time, SMCCIServerSettings settings) :
     m_external_time = (NULL != m_time);
     if (!m_time)
     {
-        m_time = new CMCCITimeReal();
+        m_time = (CMCCITime*) new CMCCITimeReal();
     }
 
 }
@@ -62,18 +62,30 @@ ostream& operator<<(ostream& out, const CMCCIServer& rhs)
         << "\n\t\t VarRev:  " << rhs.m_bank_varrev
                ;
 
+    LinearHash<MCCI_CLIENT_ID_T, bool> hits(100);
+
+    
     out << "\n\tClients (with more than 1 open request):";
+    // check promiscuous request bank for client matches
+    for (AllRequestBank::subscriber_iterator it = rhs.m_bank_all.subscribers_begin(1);
+         it != rhs.m_bank_all.subscribers_end(1); ++it)
+    {
+        hits[*it] = true;
+    }
+
+    // make output
     for (int i = 0; i < rhs.m_settings.max_clients; ++i)
     {
         //FIXME: maybe convert to client existence function
         int req_loc = rhs.m_settings.max_local_requests - rhs.client_free_requests_local(i);
         int req_rem = rhs.m_settings.max_remote_requests - rhs.client_free_requests_remote(i);
 
-        if (req_loc || req_rem)
+        if (req_loc || req_rem || hits[i])
         {
             out << "\n\t\t" << i << ":\t"
                 << req_loc << " local requests, "
-                << req_rem << " remote requests";
+                << req_rem << " remote requests, "
+                << (int)hits[i] << " promiscuous";
         }
     }
     
@@ -125,11 +137,7 @@ void CMCCIServer::process_request(MCCI_CLIENT_ID_T requestor_id,
     }
     response->accepted = true;     // all requests are (or should be) OK after this
     
-    // check the time 
-    if (m_time->now() > input->timeout)
-    {
-        return; // silently drop.  we accepted the packet that was timed out, so noop.
-    }
+    // we allow packets that are timed out just in case they replace existing requests
     
     // if subscribing to ALL nodes
     if (MCCI_HOST_ANY == input->node_address) 
@@ -382,6 +390,16 @@ void CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPack
         hits[*it] = true;
     }
 
+    HostVarRevTuple hvr;
+    hvr.host = input->node_address;
+    hvr.var  = input->variable_id;
+    hvr.rev  = input->revision;
+    for (RemoteRevisionRequestBank::subscriber_iterator it = m_bank_remote.subscribers_begin(hvr);
+         it != m_bank_remote.subscribers_end(hvr); ++it)
+    {
+        hits[*it] = true;
+    }
+
     VarRevPair vr;
     vr.var = input->variable_id;
     vr.rev = input->revision;
@@ -391,6 +409,7 @@ void CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPack
         hits[*it] = true;
     }
 
+    
     // iterate over linear hash and send data to clients
     for (LinearHash<MCCI_CLIENT_ID_T, bool>::iterator it = hits.begin();
          it != hits.end(); ++it)

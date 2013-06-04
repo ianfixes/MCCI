@@ -90,6 +90,9 @@ class CMCCIServer
     // remove all expired requests and update the outstanding_requests counters appropriately
     void enforce_timeouts();
 
+    // return the settings
+    SMCCIServerSettings get_settings() const { return m_settings; }
+    
   protected:
 
     // whether an address is equivalent to "localhost"
