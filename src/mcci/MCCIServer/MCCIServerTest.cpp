@@ -77,8 +77,8 @@ int init(bool debug)
         
         // these should be prime numbers because they become hash table sizes
         settings.my_node_address = 5;
-        settings.max_local_requests = 101;
-        settings.max_remote_requests = 199;
+        settings.max_local_requests = 6;
+        settings.max_remote_requests = 4;
         settings.max_clients = 100;
 
         settings.bank_size_host = 20;
@@ -268,6 +268,30 @@ int test_rb_hostvar()
     return test_rb_basic(request, 0, 1);
 }
 
+int test_rb_remote()
+{    
+    SMCCIRequestPacket request;
+    request.node_address = 88;
+    request.variable_id = 1;
+    request.revision = 34;
+    request.quantity = 1;
+
+    // remote requests count against remote
+    return test_rb_basic(request, 0, 1);
+}
+
+int test_rb_varrev()
+{
+    SMCCIRequestPacket request;
+    request.node_address = 0;
+    request.variable_id = 1;
+    request.revision = 34;
+    request.quantity = 1;
+
+    // varrev requests count against local
+    return test_rb_basic(request, 1, 0);
+}
+
 
 
 int main(int argc, char* argv[])
@@ -289,7 +313,8 @@ int main(int argc, char* argv[])
     do_test("test_rb_host_loc", test_rb_host_loc);
     do_test("test_rb_var", test_rb_var);
     do_test("test_rb_hostvar", test_rb_hostvar);
-
+    do_test("test_rb_remote", test_rb_remote);
+    do_test("test_rb_varrev", test_rb_varrev);
     
     cerr << "\n\n";
     return 0;
