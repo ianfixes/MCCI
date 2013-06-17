@@ -508,6 +508,7 @@ unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id) 
         + m_bank_host.get_outstanding_request_count(client_id)
         + m_bank_var.get_outstanding_request_count(client_id)
         + m_bank_hostvar.get_outstanding_request_count(client_id)
+        + m_bank_remote.get_outstanding_request_count(client_id)
         );  
 }
 
