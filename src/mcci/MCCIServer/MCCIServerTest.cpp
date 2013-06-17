@@ -77,8 +77,8 @@ int init(bool debug)
         
         // these should be prime numbers because they become hash table sizes
         settings.my_node_address = 5;
-        settings.max_local_requests = 6;
-        settings.max_remote_requests = 4;
+        settings.max_local_requests = 101;
+        settings.max_remote_requests = 199;
         settings.max_clients = 100;
 
         settings.bank_size_host = 20;
@@ -97,6 +97,22 @@ int init(bool debug)
         my_server = new CMCCIServer((CMCCITime*)&fake_time, settings);
         if (debug) cerr << "OK";
         if (debug) cerr << "\n" << my_server->get_settings();
+
+        if (debug) cerr << "\nProducing values";
+        for (int i = 0; i < 60; ++i)
+        {
+            SMCCIProductionPacket p;
+            p.variable_id = 2;
+            p.response_id = 0;
+
+            SMCCIAcceptancePacket a;
+            
+            //my_server->process_production(36, &p, &a);
+
+            if (debug) cerr << ".";
+        }
+        if (debug) cerr << "OK";
+
         
     }
     catch (std::bad_alloc ba)
@@ -273,11 +289,11 @@ int test_rb_remote()
     SMCCIRequestPacket request;
     request.node_address = 88;
     request.variable_id = 1;
-    request.revision = 34;
-    request.quantity = 1;
+    request.revision = 61;
+    request.quantity = 5;
 
     // remote requests count against remote
-    return test_rb_basic(request, 0, 1);
+    return test_rb_basic(request, 0, 5);
 }
 
 int test_rb_varrev()
@@ -285,12 +301,13 @@ int test_rb_varrev()
     SMCCIRequestPacket request;
     request.node_address = 0;
     request.variable_id = 1;
-    request.revision = 34;
-    request.quantity = 1;
+    request.revision = 61;
+    request.quantity = 5;
 
     // varrev requests count against local
-    return test_rb_basic(request, 1, 0);
+    return test_rb_basic(request, 5, 0);
 }
+
 
 
 
@@ -315,7 +332,7 @@ int main(int argc, char* argv[])
     do_test("test_rb_hostvar", test_rb_hostvar);
     do_test("test_rb_remote", test_rb_remote);
     do_test("test_rb_varrev", test_rb_varrev);
-    
+
     cerr << "\n\n";
     return 0;
     
