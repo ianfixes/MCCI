@@ -275,7 +275,12 @@ template<typename KeySet, typename Key>
 
         if (!this->m_bank.has_key(k)) return NULL;
 
-        if (NULL == this->m_bank[k]) throw string("Improper cleanup is happening");
+        if (NULL == this->m_bank[k])
+        {
+            stringstream s;
+            s << "Improper cleanup is happening, key = " << k;
+            throw string(s.str());
+        }
 
         if (this->m_bank[k]->find(client_id) == this->m_bank[k]->end()) return NULL;
 
@@ -285,7 +290,8 @@ template<typename KeySet, typename Key>
     // return a pointer to a client_id -> heapnode map based on the partially-qualified info
     virtual SubscriptionMap* get_by_pq(KeySet const key_set) const
     {
-        return this->m_bank[this->get_key(key_set)];
+        Key k = this->get_key(key_set);
+        return this->m_bank.has_key(k) ? this->m_bank[k] : NULL;
     }
 
     // remove a node from the custom container (not the heap) based on its key
