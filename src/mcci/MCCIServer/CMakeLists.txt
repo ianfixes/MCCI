@@ -11,6 +11,7 @@ SET(MCCIServer_SRCS
   MCCIRevisionSet.cpp
   MCCIServer.h
   MCCIServer.cpp
+  MCCIServerNetworking.h
   MCCISchema.h
   MCCISchema.cpp
   MCCIServerMain.cpp

@@ -10,6 +10,8 @@
 using namespace std;
 
 CMCCIServer* myServer;
+CMCCIServerNetworkingFake fake_networking(cerr); // FIXME: replace with real thing
+CMCCITimeFake fake_time;
 
 
 sqlite3* schema_db = NULL;
@@ -77,7 +79,10 @@ int main(int argc, char* argv[])
         settings.schema = schema;
         settings.revisionset = rs;
 
-        myServer = new CMCCIServer(settings);
+        
+        myServer = new CMCCIServer((CMCCITime*)&fake_time,
+                                   (CMCCIServerNetworking*)&fake_networking,
+                                   settings);
         
         cleanup();
     }

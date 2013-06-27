@@ -3,6 +3,7 @@
 #include "FibonacciHeap.h"
 #include "MCCIRequestBanks.h"
 #include "MCCISchema.h"
+#include "MCCIServerNetworking.h"
 #include "MCCIRevisionSet.h"
 #include "MCCITime.h"
 #include "MCCITypes.h"
@@ -57,10 +58,12 @@ class CMCCIServer
     VariableRevisionRequestBank m_bank_varrev;
 
     CMCCITime* m_time;
+    CMCCIServerNetworking* m_networking;
     bool m_external_time;
     
   public:
-    CMCCIServer(CMCCITime* time, SMCCIServerSettings settings);
+    CMCCIServer(CMCCITime* time, CMCCIServerNetworking* networking, SMCCIServerSettings settings);
+    CMCCIServer(const CMCCIServer&);
     ~CMCCIServer();
 
     // output operator
@@ -133,11 +136,6 @@ class CMCCIServer
     void process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
                                      const SMCCIRequestPacket* input,
                                      SMCCIResponsePacket* response);
-
-    // send a request to be delivered to all clients
-    void forward_request(MCCI_CLIENT_ID_T requestor_id, const SMCCIRequestPacket* request)
-    {};
-    // FIXME: this will be a 0mq publish operation, queue name will be host.var.rev i think
 
     // add a client to the list of recipients for all data packets
     void subscribe_promiscuous(MCCI_CLIENT_ID_T client_id, MCCI_TIME_T timeout);

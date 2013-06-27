@@ -12,6 +12,7 @@
 using namespace std;
 
 CMCCITimeFake fake_time;
+CMCCIServerNetworkingFake fake_networking(cerr);
 
 sqlite3* schema_db = NULL;
 sqlite3* rs_db     = NULL;
@@ -94,7 +95,9 @@ int init(bool debug)
         settings.revisionset = rs;
 
         if (debug) cerr << "\nCreating server instance...";
-        my_server = new CMCCIServer((CMCCITime*)&fake_time, settings);
+        my_server = new CMCCIServer((CMCCITime*)&fake_time,
+                                    (CMCCIServerNetworking*)&fake_networking,
+                                    settings);
         if (debug) cerr << "OK";
         if (debug) cerr << "\n" << my_server->get_settings();
 
@@ -107,7 +110,7 @@ int init(bool debug)
 
             SMCCIAcceptancePacket a;
             
-            //my_server->process_production(36, &p, &a);
+            my_server->process_production(36, &p, &a);
 
             if (debug) cerr << ".";
         }

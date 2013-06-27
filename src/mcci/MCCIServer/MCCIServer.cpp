@@ -5,8 +5,11 @@ using namespace std;
 
 
 
-CMCCIServer::CMCCIServer(CMCCITime* time, SMCCIServerSettings settings) :
+CMCCIServer::CMCCIServer(CMCCITime* time,
+                         CMCCIServerNetworking* networking,
+                         SMCCIServerSettings settings) :
     m_time(time),
+    m_networking(networking),
     m_working_set(settings.schema->get_cardinality(), NULL),
     m_bank_all(100, 1),
     m_bank_host(settings.max_clients, settings.bank_size_host),
@@ -23,6 +26,26 @@ CMCCIServer::CMCCIServer(CMCCITime* time, SMCCIServerSettings settings) :
         m_time = (CMCCITime*) new CMCCITimeReal();
     }
 
+}
+
+CMCCIServer::CMCCIServer(const CMCCIServer& rhs) :
+    m_time(rhs.m_time),
+    m_networking(rhs.m_networking),
+    m_working_set(rhs.m_settings.schema->get_cardinality(), NULL),
+    m_bank_all(100, 1),
+    m_bank_host(rhs.m_settings.max_clients, rhs.m_settings.bank_size_host),
+    m_bank_var(rhs.m_settings.max_clients, rhs.m_settings.bank_size_var),
+    m_bank_hostvar(rhs.m_settings.max_clients, rhs.m_settings.bank_size_hostvar),
+    m_bank_remote(rhs.m_settings.max_clients,
+                  rhs.m_settings.bank_size_remote_hostvar,
+                  rhs.m_settings.bank_size_remote_rev),
+    m_bank_varrev(rhs.m_settings.max_clients,
+                  rhs.m_settings.bank_size_varrev_var,
+                  rhs.m_settings.bank_size_varrev_rev),
+    m_settings(rhs.m_settings),
+    m_external_time(rhs.m_external_time)
+{
+    return;
 }
 
 CMCCIServer::~CMCCIServer()
@@ -197,14 +220,14 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
     
     bool is_for_me = is_my_address(input->node_address);
     bool do_forward = !is_for_me;
-    
+
     if (!is_for_me && 0 == input->revision)
     {
         // silently drop if we have no more requests
         if (response->requests_remaining_remote) 
         {
             subscribe_to_host_var(requestor_id, input->timeout, input->node_address, input->variable_id);
-            forward_request(requestor_id, input);
+            m_networking->forward_request(requestor_id, input);
         }
 
         return set_free_requests(response, requestor_id);
@@ -281,8 +304,8 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
     //  subscription slots.  i think this is ok, since the send ordering is preserved
     //  and it's possible that the slots will clear (for re-request) before the later
     //  packets arrive.
-    
-    if (do_forward) forward_request(requestor_id, input);
+
+    if (do_forward) m_networking->forward_request(requestor_id, input);
 
     return set_free_requests(response, requestor_id);
 
@@ -420,7 +443,7 @@ void CMCCIServer::process_production(MCCI_CLIENT_ID_T provider_id,
 
     if (output->response_id)
     {
-        // FIXME: send response
+        this->m_networking->send_production_response(provider_id, output);
     }
 }
 
@@ -483,7 +506,7 @@ void CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPack
     for (LinearHash<MCCI_CLIENT_ID_T, bool>::iterator it = hits.begin();
          it != hits.end(); ++it)
     {
-        //FIXME: send_data_to_client(*it, input)
+        m_networking->send_data_to_client(it->first, input);
     }
 
 
