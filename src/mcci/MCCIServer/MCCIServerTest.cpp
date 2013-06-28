@@ -76,12 +76,13 @@ int init(bool debug)
         // build settings struct
         SMCCIServerSettings settings;
         
-        // these should be prime numbers because they become hash table sizes
+
         settings.my_node_address = 5;
         settings.max_local_requests = 101;
         settings.max_remote_requests = 199;
         settings.max_clients = 100;
 
+        // these numbers will automatically be adjusted to prime numbers for the hash tables
         settings.bank_size_host = 20;
         settings.bank_size_var = 20;
         settings.bank_size_hostvar = 30;
