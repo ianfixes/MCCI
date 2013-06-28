@@ -4,7 +4,7 @@
 using namespace std;
 
 
-
+//default constructor
 CMCCIServer::CMCCIServer(CMCCITime* time,
                          CMCCIServerNetworking* networking,
                          SMCCIServerSettings settings) :
@@ -28,6 +28,7 @@ CMCCIServer::CMCCIServer(CMCCITime* time,
 
 }
 
+//copy constructor
 CMCCIServer::CMCCIServer(const CMCCIServer& rhs) :
     m_time(rhs.m_time),
     m_networking(rhs.m_networking),
@@ -48,6 +49,8 @@ CMCCIServer::CMCCIServer(const CMCCIServer& rhs) :
     return;
 }
 
+
+//destructor
 CMCCIServer::~CMCCIServer()
 {
     vector<SMCCIDataPacket*>::iterator it;
@@ -59,6 +62,7 @@ CMCCIServer::~CMCCIServer()
     // if we created it, destroy it.
     if (!m_external_time) delete m_time;
 }
+
 
 ostream& operator<<(ostream& out, const SMCCIServerSettings& rhs)
 {
@@ -511,10 +515,12 @@ void CMCCIServer::process_data(MCCI_CLIENT_ID_T provider_id, const SMCCIDataPack
 
 
     //FIXME: send ack to provider_id?
+    enforce_fulfillment(input);
+
 }
 
 
-unsigned int CMCCIServer::client_free_requests_local(unsigned short client_id) const
+unsigned int CMCCIServer::client_free_requests_local(MCCI_CLIENT_ID_T client_id) const
 {
     // all outstanding requests for this client in all local banks
     return m_settings.max_local_requests - (
@@ -523,7 +529,7 @@ unsigned int CMCCIServer::client_free_requests_local(unsigned short client_id) c
         ); 
 }
     
-unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id) const
+unsigned int CMCCIServer::client_free_requests_remote(MCCI_CLIENT_ID_T client_id) const
 {
     // all outstanding requests for this client in all remote banks
     return m_settings.max_remote_requests - (
@@ -533,6 +539,27 @@ unsigned int CMCCIServer::client_free_requests_remote(unsigned short client_id) 
         + m_bank_hostvar.get_outstanding_request_count(client_id)
         + m_bank_remote.get_outstanding_request_count(client_id)
         );  
+}
+
+void CMCCIServer::enforce_fulfillment(const SMCCIDataPacket* delivered)
+{
+    if (is_my_address(delivered->node_address))
+    {
+        VarRevPair vr;
+        vr.var = delivered->variable_id;
+        vr.rev = delivered->revision;
+
+        if (m_bank_varrev.get_by_pq(vr)) m_bank_varrev.remove_by_key(vr);
+    }
+    else
+    {
+        HostVarRevTuple hvr;
+        hvr.host = delivered->node_address;
+        hvr.var = delivered->variable_id;
+        hvr.rev = delivered->revision;
+        
+        if (m_bank_remote.get_by_pq(hvr)) m_bank_remote.remove_by_key(hvr);
+    }
 }
 
 void CMCCIServer::enforce_timeouts()

@@ -94,6 +94,9 @@ class CMCCIServer
     // remove all expired requests and update the outstanding_requests counters appropriately
     void enforce_timeouts();
 
+    // remove all requests for a specific packet that was delivered
+    void enforce_fulfillment(const SMCCIDataPacket* delivered);
+    
     // return the settings
     SMCCIServerSettings get_settings() const { return m_settings; }
     
