@@ -70,7 +70,10 @@ class CMCCIServer
     friend ostream& operator<<(ostream &out, CMCCIServer const &rhs);
 
     // string version of output
-    string summary();
+    string summary() const;
+
+    // number of open requests
+    int request_count() const;
     
     // accept a request packet, and put its contents in the appropriate structures, responding accordingly
     void process_request(MCCI_CLIENT_ID_T requestor_id,
@@ -94,7 +97,7 @@ class CMCCIServer
     // remove all expired requests and update the outstanding_requests counters appropriately
     void enforce_timeouts();
 
-    // remove all requests for a specific packet that was delivered
+    // remove all requests forz a specific packet that was delivered
     void enforce_fulfillment(const SMCCIDataPacket* delivered);
     
     // return the settings

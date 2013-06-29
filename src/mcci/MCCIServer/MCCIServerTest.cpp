@@ -76,7 +76,6 @@ int init(bool debug)
         // build settings struct
         SMCCIServerSettings settings;
         
-
         settings.my_node_address = 5;
         settings.max_local_requests = 101;
         settings.max_remote_requests = 199;
@@ -184,7 +183,7 @@ int test0()
 }
 
 // request is a request packet, impacts are how many req slots we expect the packet to occupy
-int test_rb_basic(SMCCIRequestPacket request, int local_impact, int remote_impact)
+int test_rb_basic(SMCCIRequestPacket request, int local_impact, int remote_impact, int reqs)
 {
     MCCI_CLIENT_ID_T myclient_id = 37;
     SMCCIServerSettings settings = my_server->get_settings();
@@ -205,9 +204,12 @@ int test_rb_basic(SMCCIRequestPacket request, int local_impact, int remote_impac
     assert(settings.max_local_requests == response.requests_remaining_local + local_impact);
     assert(settings.max_remote_requests == response.requests_remaining_remote + remote_impact);
 
+    cerr << "\nreqs " << reqs << " rc " << my_server->request_count();
+    assert(reqs == my_server->request_count());
 
     cerr << "\nenforcing timeouts after a request w/ future timeout: " << response;
     my_server->enforce_timeouts();
+    assert(reqs == my_server->request_count());
     cerr << "\n" << *my_server;
     
     cerr << "\nTesting request alteration: ";
@@ -223,6 +225,7 @@ int test_rb_basic(SMCCIRequestPacket request, int local_impact, int remote_impac
     
     cerr << "\nenforcing timeouts";
     my_server->enforce_timeouts();
+    assert(0 == my_server->request_count());
     
     cerr << "\nAfter enforcing timeouts:\n" << *my_server;
     return 0;
@@ -237,7 +240,7 @@ int test_rb_all()
     request.quantity = 1;
 
     // requests for ALL don't count against totals!
-    return test_rb_basic(request, 0, 0);
+    return test_rb_basic(request, 0, 0, 1);
 }
 
 int test_rb_host()
@@ -249,7 +252,7 @@ int test_rb_host()
     request.quantity = 1;
 
     // host requests count against the remote
-    return test_rb_basic(request, 0, 1);
+    return test_rb_basic(request, 0, 1, 1);
 }
 
 int test_rb_host_loc()
@@ -261,7 +264,7 @@ int test_rb_host_loc()
     request.quantity = 1;
 
     // host requests count against remote
-    return test_rb_basic(request, 0, 1);
+    return test_rb_basic(request, 0, 1, 1);
 }
 
 int test_rb_var()
@@ -273,7 +276,7 @@ int test_rb_var()
     request.quantity = 1;
 
     // variable requests count against remote
-    return test_rb_basic(request, 0, 1);
+    return test_rb_basic(request, 0, 1, 1);
 }
 
 int test_rb_hostvar()
@@ -285,7 +288,7 @@ int test_rb_hostvar()
     request.quantity = 1;
 
     // host/variable requests count against remote
-    return test_rb_basic(request, 0, 1);
+    return test_rb_basic(request, 0, 1, 1);
 }
 
 int test_rb_remote()
@@ -297,7 +300,7 @@ int test_rb_remote()
     request.quantity = 5;
 
     // remote requests count against remote
-    return test_rb_basic(request, 0, 5);
+    return test_rb_basic(request, 0, 5, 1);
 }
 
 int test_rb_varrev()
@@ -309,7 +312,7 @@ int test_rb_varrev()
     request.quantity = 5;
 
     // varrev requests count against local
-    return test_rb_basic(request, 5, 0);
+    return test_rb_basic(request, 5, 0, 1);
 }
 
 

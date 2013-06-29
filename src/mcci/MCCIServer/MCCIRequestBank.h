@@ -101,7 +101,11 @@ class RequestBank
         return;  // no action
     }
 
+    // whether there are any requests
     bool empty() const { return this->m_timeouts.empty(); }
+
+    // number of requests
+    bool size() const { return this->m_timeouts.size(); }
     
     // get the timeout of the node that will expire first
     MCCI_TIME_T minimum_timeout() const { return this->m_timeouts.minimum()->key(); }

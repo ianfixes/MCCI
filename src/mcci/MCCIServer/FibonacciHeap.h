@@ -97,6 +97,7 @@ template <typename Key, typename Data> class FibonacciHeap
     string summary() const;
     
     bool empty() const { return 0 == m_count; };
+    bool size() const { return m_count; };
 
     PNodePtr minimum() const;
     void remove_minimum();

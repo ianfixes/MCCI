@@ -139,11 +139,22 @@ ostream& operator<<(ostream& out, const CMCCIServer& rhs)
 }
 
 
-string CMCCIServer::summary()
+string CMCCIServer::summary() const
 {
     stringstream s;
     s << (*this);
     return s.str();
+}
+
+
+int CMCCIServer::request_count() const
+{
+    return m_bank_all.size()
+        + m_bank_host.size()
+        + m_bank_var.size()
+        + m_bank_hostvar.size()
+        + m_bank_remote.size()
+        + m_bank_varrev.size();
 }
 
 
