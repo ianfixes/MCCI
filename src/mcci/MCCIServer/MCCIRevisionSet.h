@@ -32,19 +32,23 @@ class CMCCIRevisionSet
 
   public:
     CMCCIRevisionSet(sqlite3* revision_db, unsigned int schema_cardinality, string schema_signature);
+    CMCCIRevisionSet(const CMCCIRevisionSet &rhs);
     ~CMCCIRevisionSet();
 
+    // output operator
+    friend ostream& operator<<(ostream &out, CMCCIRevisionSet const &rhs);
+    
     void load(sqlite3* revision_db);
 
     MCCI_REVISION_T get_revision(MCCI_VARIABLE_T variable_id);  // return current value of revision
     MCCI_REVISION_T inc_revision(MCCI_VARIABLE_T variable_id);  // increment revision and return value
 
     // the signature of the schema we're using
-    string get_signature();
+    string get_signature() const;
     void set_signature(string signature);
 
     // if false, disregards mismatches in schema signatures.  this should only be used for debugging.
-    bool get_strict() { return m_strict; };    
+    bool get_strict() const { return m_strict; };    
     void set_strict(bool v) { m_strict = v; };
     
   protected:

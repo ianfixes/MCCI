@@ -10,6 +10,14 @@ CMCCIRevisionSet::CMCCIRevisionSet(sqlite3* revision_db, unsigned int schema_car
 }
 
 
+CMCCIRevisionSet::CMCCIRevisionSet(const CMCCIRevisionSet &rhs)
+{
+    m_cache.resize(rhs.m_cache.get_size());
+    load(rhs.m_db);
+    m_strict = rhs.m_strict;
+}
+
+
 CMCCIRevisionSet::~CMCCIRevisionSet()
 {
     sqlite3_finalize(m_insert);
@@ -17,7 +25,25 @@ CMCCIRevisionSet::~CMCCIRevisionSet()
     sqlite3_finalize(m_update);
 }
 
-string CMCCIRevisionSet::get_signature()
+
+ostream& operator<<(ostream& out, const CMCCIRevisionSet& rhs)
+{
+    out << "RevisionSet ("
+        << rhs.get_signature()
+        << "): ";
+
+    for (LinearHash<MCCI_VARIABLE_T, MCCI_REVISION_T>::iterator it = rhs.m_cache.begin();
+         it != rhs.m_cache.end(); ++it)
+    {
+        out << "\n\tVar # " << it->first << " : \t" << it->second;
+    }
+
+    
+    return out;
+}
+
+
+string CMCCIRevisionSet::get_signature() const
 {
     sqlite3_stmt* s;
     int result;
