@@ -77,7 +77,7 @@ void CMCCIRevisionSet::set_signature(string signature)
 {
     string currentsig = get_signature();
 
-    if ("" != currentsig)
+    if ("" != currentsig && signature != currentsig)
     {
         throw string("Tried to change signature from " + currentsig + " to " + signature);
     }
@@ -85,12 +85,16 @@ void CMCCIRevisionSet::set_signature(string signature)
     {
         sqlite3_exec(m_db, "delete from signature", NULL, NULL, NULL); // FIXME: remove this? need way to reset
         
-        fprintf(stderr, "\ninserting '%s' signature", signature.c_str());
+        //fprintf(stderr, "\ninserting '%s' signature", signature.c_str());
         sqlite3_stmt* s;
         sqlite3_prepare(m_db, "insert into signature(signature) values(?)", 255, &s, NULL);
         sqlite3_bind_text(s, 1, signature.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_step(s);
-        fprintf(stderr, "\nerrmsg is %s", sqlite3_errmsg(m_db));
+        int result = sqlite3_step(s);
+        if (SQLITE_DONE != result)
+        {
+            string s = string("Error in set_signature: ") + string(sqlite3_errmsg(m_db));
+            throw s;
+        }
         sqlite3_finalize(s);
     }
     
@@ -103,6 +107,9 @@ void CMCCIRevisionSet::load(sqlite3* revision_db)
 {
     m_db = revision_db;
 
+    // assert that we can read and write
+    set_signature(get_signature());
+    
     // this optimization is OK because it only fails if the computer crashes
     // which is already a system failure requiring intervention
     sqlite3_exec(m_db, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
