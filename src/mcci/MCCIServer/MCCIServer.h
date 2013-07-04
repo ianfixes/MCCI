@@ -57,8 +57,8 @@ class CMCCIServer
     RemoteRevisionRequestBank   m_bank_remote;
     VariableRevisionRequestBank m_bank_varrev;
 
-    CMCCITime* m_time;
     CMCCIServerNetworking* m_networking;
+    CMCCITime* m_time;
     bool m_external_time;
     
   public:

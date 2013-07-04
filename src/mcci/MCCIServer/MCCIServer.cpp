@@ -8,17 +8,18 @@ using namespace std;
 CMCCIServer::CMCCIServer(CMCCITime* time,
                          CMCCIServerNetworking* networking,
                          SMCCIServerSettings settings) :
-    m_time(time),
-    m_networking(networking),
+    m_settings(settings),
     m_working_set(settings.schema->get_cardinality(), NULL),
     m_bank_all(100, 1),
     m_bank_host(settings.max_clients, settings.bank_size_host),
     m_bank_var(settings.max_clients, settings.bank_size_var),
     m_bank_hostvar(settings.max_clients, settings.bank_size_hostvar),
     m_bank_remote(settings.max_clients, settings.bank_size_remote_hostvar, settings.bank_size_remote_rev),
-    m_bank_varrev(settings.max_clients, settings.bank_size_varrev_var, settings.bank_size_varrev_rev)
+    m_bank_varrev(settings.max_clients, settings.bank_size_varrev_var, settings.bank_size_varrev_rev),
+    m_networking(networking)
 {
-    m_settings = settings;
+
+    m_time = time;
 
     m_external_time = (NULL != m_time);
     if (!m_time)
@@ -30,8 +31,7 @@ CMCCIServer::CMCCIServer(CMCCITime* time,
 
 //copy constructor
 CMCCIServer::CMCCIServer(const CMCCIServer& rhs) :
-    m_time(rhs.m_time),
-    m_networking(rhs.m_networking),
+    m_settings(rhs.m_settings),
     m_working_set(rhs.m_settings.schema->get_cardinality(), NULL),
     m_bank_all(100, 1),
     m_bank_host(rhs.m_settings.max_clients, rhs.m_settings.bank_size_host),
@@ -43,7 +43,8 @@ CMCCIServer::CMCCIServer(const CMCCIServer& rhs) :
     m_bank_varrev(rhs.m_settings.max_clients,
                   rhs.m_settings.bank_size_varrev_var,
                   rhs.m_settings.bank_size_varrev_rev),
-    m_settings(rhs.m_settings),
+    m_networking(rhs.m_networking),
+    m_time(rhs.m_time),
     m_external_time(rhs.m_external_time)
 {
     return;
@@ -109,7 +110,7 @@ ostream& operator<<(ostream& out, const CMCCIServer& rhs)
     }
 
     // make output
-    for (int i = 0; i < rhs.m_settings.max_clients; ++i)
+    for (unsigned int i = 0; i < rhs.m_settings.max_clients; ++i)
     {
         //FIXME: maybe convert to client existence function
         int req_loc = rhs.m_settings.max_local_requests - rhs.client_free_requests_local(i);
@@ -126,7 +127,7 @@ ostream& operator<<(ostream& out, const CMCCIServer& rhs)
     
     
     out << "\n\tWorking Set:";
-    for (int i = 0; i < rhs.m_settings.schema->get_cardinality(); ++i)
+    for (unsigned int i = 0; i < rhs.m_settings.schema->get_cardinality(); ++i)
     {
         MCCI_VARIABLE_T var_id = rhs.m_settings.schema->variable_of_ordinal(i);
         if (rhs.is_in_working_set(var_id))
