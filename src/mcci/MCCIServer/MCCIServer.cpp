@@ -19,6 +19,9 @@ CMCCIServer::CMCCIServer(CMCCITime* time,
     m_networking(networking)
 {
 
+    if (m_settings.revisionset->get_signature() != m_settings.schema->get_hash())
+        throw string("RevisionSet signature does not match Schema hash");
+
     m_time = time;
 
     m_external_time = (NULL != m_time);
