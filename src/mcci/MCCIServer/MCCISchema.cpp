@@ -1,6 +1,10 @@
 
 #include "MCCISchema.h"
 #include <string>
+#include <openssl/sha.h>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+
 using namespace std;
 
 void CMCCISchema::load(sqlite3* schema_db)
@@ -16,7 +20,9 @@ void CMCCISchema::load(sqlite3* schema_db)
     SHA_CTX context;
     int init_success = SHA1_Init(&context);
     int update_success;
-        
+    int final_success;
+    char hash[SHA_DIGEST_LENGTH * 2];
+    
     // variables for sqlite reading
     sqlite3_stmt* stmt = NULL;
     int result;
@@ -31,7 +37,7 @@ void CMCCISchema::load(sqlite3* schema_db)
                                 "select var_id, name, protobuf_id, unit from var where enabled <> 0",
                                 -1, &stmt, 0);
 
-    if (result) throw string("Loading of data filed FIXME: result");
+    if (result) throw string("Loading of data failed FIXME: result");
 
     // this is where we iterate through the schema db
     for (unsigned int i = 0; ; i++)
@@ -60,12 +66,39 @@ void CMCCISchema::load(sqlite3* schema_db)
     }
     
     // finalize the hash value
-    int final_success = SHA1_Final(md, &context);    
-    if (init_success + update_success + final_success)
-        init_success = 0; // TODO: remove this line which is to suppress warning
+    final_success = SHA1_Final(md, &context);    
     
-    string ret(md, md + SHA_DIGEST_LENGTH - 1);
-    this->m_hashval = ret;
+    string ret(md, md + SHA_DIGEST_LENGTH);
+
+    if (3 > init_success + update_success + final_success)
+    {
+        fprintf(stderr, "\nSHA1 errors: %d %d %d", init_success, update_success, final_success);
+        throw string("SHA1 process had a zero return code somewhere");
+    }
+
+    b64_encode(md, hash, SHA_DIGEST_LENGTH, SHA_DIGEST_LENGTH * 2);
+
+    this->m_hashval = string(hash);
+}
+
+// base64 encode function using the openssl library
+// http://doctrina.org/Base64-With-OpenSSL.html
+void CMCCISchema::b64_encode(unsigned char* in,
+                             char* out,
+                             unsigned int in_len,
+                             unsigned int out_len) const
+{
+    FILE* out_file = fmemopen(out, out_len, "w"); // fake file in memory
+
+    BIO* b64 = BIO_new(BIO_f_base64());
+    BIO* bio = BIO_new_fp(out_file, BIO_NOCLOSE);
+    bio = BIO_push(b64, bio);
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line
+    BIO_write(bio, in, in_len);
+    BIO_flush(bio);
+    BIO_free_all(bio);
+        
+    fclose(out_file);
 }
 
 unsigned int CMCCISchema::load_cardinality(sqlite3* schema_db)

@@ -2,7 +2,6 @@
 
 #include <string>
 #include <sqlite3.h>
-#include <openssl/sha.h>
 #include "LinearHash.h"
 #include "MCCITypes.h"
 #include <vector>
@@ -65,5 +64,9 @@ class CMCCISchema
     
     sqlite3* m_db;
 
-
+    void b64_encode(unsigned char* in,
+                    char* out,
+                    unsigned int in_len,
+                    unsigned int out_len) const;
+    
 };
