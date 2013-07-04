@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
     try
     {
         schema = new CMCCISchema(schema_db);
-        rs     = new CMCCIRevisionSet(rs_db, schema->get_cardinality(), "signature");
+        rs     = new CMCCIRevisionSet(rs_db, schema->get_cardinality(), schema->get_hash());
         
         // build settings struct
         SMCCIServerSettings settings;

@@ -44,6 +44,7 @@ bool try_open_db(bool debug, string file, sqlite3** db, int flags)
         cerr << "Couldn't open '" << file << "': '" << sqlite3_errmsg(*db) << "'";
         return false;
     }
+    
     if (debug) cerr << "OK";
     return true;
 }
@@ -67,11 +68,16 @@ int init(bool debug)
     {
         if (debug) cerr << "\nCreating schema object...";
         schema = new CMCCISchema(schema_db);
-        if (debug) cerr << "OK " << schema;
+        if (debug) cerr << "OK (" << schema->get_hash() << ")";
 
         if (debug) cerr << "\nCreating revisionset object...";
-        rs     = new CMCCIRevisionSet(rs_db, schema->get_cardinality(), "signature");
-        if (debug) cerr << "OK";
+        rs     = new CMCCIRevisionSet(rs_db, schema->get_cardinality(), schema->get_hash());
+        if (debug)
+        {
+            cerr << "OK";
+            cerr << "\n -- " << *rs;
+        }
+        
             
         // build settings struct
         SMCCIServerSettings settings;
@@ -121,14 +127,17 @@ int init(bool debug)
     catch (std::bad_alloc ba)
     {
         cerr << "\nGot exception '" <<  ba.what() << "'";
+        return 1;
     }
     catch (string s)
     {
         cerr << "\n\nGot error: " << s << "\n\n";
+        return 1;
     }
     catch (...)
     {
         cerr << "\n well... we caught some error";
+        return 1;
     }
 
 
