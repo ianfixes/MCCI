@@ -28,7 +28,8 @@ class CMCCIRevisionSet
     LinearHash<MCCI_VARIABLE_T, MCCI_REVISION_T> m_cache; // the max current sequence number "in the wild"
     
     bool m_strict; // whether to bail if schema signatures don't match (default yes)
-    
+
+    long m_signature_id; // signature ID to use
 
   public:
     CMCCIRevisionSet(sqlite3* revision_db, unsigned int schema_cardinality, string schema_signature);
@@ -40,19 +41,29 @@ class CMCCIRevisionSet
     
     void load(sqlite3* revision_db);
 
-    MCCI_REVISION_T get_revision(MCCI_VARIABLE_T variable_id);  // return current value of revision
-    MCCI_REVISION_T inc_revision(MCCI_VARIABLE_T variable_id);  // increment revision and return value
+    // return current value of revision
+    MCCI_REVISION_T get_revision(MCCI_VARIABLE_T variable_id);
+    
+    // increment revision and return value
+    MCCI_REVISION_T inc_revision(MCCI_VARIABLE_T variable_id);  
 
     // the signature of the schema we're using
     string get_signature() const;
+
+    // put a signature in the DB if it's not there already and retain its id
     void set_signature(string signature);
 
-    // if false, disregards mismatches in schema signatures.  this should only be used for debugging.
+    // DB query for signature id, returns 0 if none exists
+    int lookup_signature_id(string signature);
+    
+    // if false, disregards mismatches in schema signatures.
+    //      this should ONLY be used for debugging.
     bool get_strict() const { return m_strict; };    
     void set_strict(bool v) { m_strict = v; };
     
   protected:
     // put a variable in the DB if it's not there already
-    void check_revision(MCCI_VARIABLE_T variable_id); 
+    void check_revision(MCCI_VARIABLE_T variable_id);
+
         
 };
