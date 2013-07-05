@@ -137,6 +137,7 @@ int CMCCIRevisionSet::lookup_signature_id(string signature)
             string err = string("Error in lookup_signature_id: ") + string(sqlite3_errmsg(m_db));
             throw err;
     }
+    sqlite3_finalize(s);
     return ret;
 }
 
@@ -169,33 +170,34 @@ void CMCCIRevisionSet::check_revision(MCCI_VARIABLE_T variable_id)
 {
     if (!m_cache.has_key(variable_id))
     {
+        fprintf(stderr, "\ncheck_revision loading variable into cache");
         // bind placeholder #1 of the read statement to our new var id
         sqlite3_bind_int(m_read, 1, variable_id);
         sqlite3_bind_int(m_read, 2, m_signature_id);
         int result = sqlite3_step(m_read);  // look for the variable
         
-        switch (result)
-        {
-            case SQLITE_ROW:  // already exists
-                m_cache[variable_id] = sqlite3_column_int(m_read, 0); 
-                break;
-            case SQLITE_DONE: // does not exist
-                sqlite3_bind_int(m_insert, 1, variable_id);
-                sqlite3_bind_int(m_insert, 2, m_signature_id);
-                sqlite3_step(m_insert); //TODO: check return value
-                sqlite3_clear_bindings(m_insert);
-                sqlite3_reset(m_insert);
-                
-                m_cache[variable_id] = 0; // matching the prepared statement
-                break;
-            default:
-                //TODO: say what error we got?
-                break;
-        }
+        if (SQLITE_ROW == result)  // already exists
+            m_cache[variable_id] = sqlite3_column_int(m_read, 0); 
 
-        // clean up
+        // record any error
+        string err = string("Error in check_revision: ") + string(sqlite3_errmsg(m_db));
+        // clean up from read
         sqlite3_clear_bindings(m_read);
         sqlite3_reset(m_read);
+
+        if (SQLITE_ROW   == result) return;   // we retrieved the value and are done
+        if (SQLITE_DONE != result) throw err; // "does not exist" is the only non-error case
+
+        fprintf(stderr, "\ncheck_revision inserting variable into DB");
+        // getting here means we need to INSERT a new record
+        sqlite3_bind_int(m_insert, 1, variable_id);
+        sqlite3_bind_int(m_insert, 2, m_signature_id);
+        result = sqlite3_step(m_insert); 
+        sqlite3_clear_bindings(m_insert);
+        sqlite3_reset(m_insert);
+        
+        m_cache[variable_id] = 0; // matching the prepared statement
+
     }
     
 }
@@ -216,11 +218,27 @@ MCCI_REVISION_T CMCCIRevisionSet::inc_revision(MCCI_VARIABLE_T variable_id)
     // immediate effect: memory
     ++(m_cache[variable_id]);
 
+    // UPDATE existing revision.
     // scheduled effect: db (delayed write, not synchronous)
-    sqlite3_bind_int(m_update, 1, variable_id);
-    sqlite3_bind_int(m_update, 2, m_cache[variable_id]);
+    sqlite3_bind_int(m_update, 1, m_cache[variable_id]);
+    sqlite3_bind_int(m_update, 2, variable_id);
     sqlite3_bind_int(m_update, 3, m_signature_id);
-    sqlite3_step(m_update); //TODO: check return value
+    fprintf(stderr, "\ninc_revision updating variable #%ld's rev to %ld",
+            (long)variable_id, (long)m_cache[variable_id]);
+    int result = sqlite3_step(m_update); 
+    switch (result)
+    {
+        case SQLITE_ROW:  
+            throw string("inc_revision somehow got a row back from an update operation");
+            break;
+        case SQLITE_DONE: // this is the good case
+            fprintf(stderr, "\ninc_revision OK");
+            break;
+        default:
+            string err = string("Error in inc_revision: ") + string(sqlite3_errmsg(m_db));
+            throw err;
+    }
+
     sqlite3_clear_bindings(m_update);
     sqlite3_reset(m_update);
 

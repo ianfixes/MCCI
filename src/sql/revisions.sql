@@ -16,7 +16,7 @@ create table revision(
     signature_id integer not null,
     revision integer not null,
 
-    primary key (var_id),
+    primary key (var_id, signature_id),
     foreign key (signature_id) references signature(signature_id)
 );
 

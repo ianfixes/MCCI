@@ -53,9 +53,6 @@ class CMCCIRevisionSet
     // put a signature in the DB if it's not there already and retain its id
     void set_signature(string signature);
 
-    // DB query for signature id, returns 0 if none exists
-    int lookup_signature_id(string signature);
-    
     // if false, disregards mismatches in schema signatures.
     //      this should ONLY be used for debugging.
     bool get_strict() const { return m_strict; };    
@@ -65,5 +62,7 @@ class CMCCIRevisionSet
     // put a variable in the DB if it's not there already
     void check_revision(MCCI_VARIABLE_T variable_id);
 
-        
+    // DB query for signature id, returns 0 if none exists
+    int lookup_signature_id(string signature);
+    
 };
