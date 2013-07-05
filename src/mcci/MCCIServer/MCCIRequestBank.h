@@ -390,6 +390,7 @@ template<typename KeySet, typename Key1, typename Key2>
         Key2 k2 = this->get_key_2(key_set);
         if (!this->m_bank.has_key(k1)) return NULL;
         if (!this->m_bank[k1].has_key(k2)) return NULL;
+        if (NULL == this->m_bank[k1][k2]) throw string("k1 and k2 point to NULL");
         if (this->m_bank[k1][k2]->find(client_id) == this->m_bank[k1][k2]->end()) return NULL;
         return (*(this->m_bank[k1][k2]))[client_id];
     }
@@ -399,6 +400,9 @@ template<typename KeySet, typename Key1, typename Key2>
     {
         Key1 k1 = this->get_key_1(key_set);
         Key2 k2 = this->get_key_2(key_set);
+
+        if (!this->m_bank.has_key(k1)) return NULL;
+        if (!this->m_bank[k1].has_key(k2)) return NULL;
         return this->m_bank[k1][k2];
     }
 
