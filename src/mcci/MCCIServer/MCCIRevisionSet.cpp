@@ -170,7 +170,7 @@ void CMCCIRevisionSet::check_revision(MCCI_VARIABLE_T variable_id)
 {
     if (!m_cache.has_key(variable_id))
     {
-        fprintf(stderr, "\ncheck_revision loading variable into cache");
+        //fprintf(stderr, "\ncheck_revision loading variable into cache");
         // bind placeholder #1 of the read statement to our new var id
         sqlite3_bind_int(m_read, 1, variable_id);
         sqlite3_bind_int(m_read, 2, m_signature_id);
@@ -188,7 +188,7 @@ void CMCCIRevisionSet::check_revision(MCCI_VARIABLE_T variable_id)
         if (SQLITE_ROW   == result) return;   // we retrieved the value and are done
         if (SQLITE_DONE != result) throw err; // "does not exist" is the only non-error case
 
-        fprintf(stderr, "\ncheck_revision inserting variable into DB");
+        //fprintf(stderr, "\ncheck_revision inserting variable into DB");
         // getting here means we need to INSERT a new record
         sqlite3_bind_int(m_insert, 1, variable_id);
         sqlite3_bind_int(m_insert, 2, m_signature_id);
@@ -223,8 +223,8 @@ MCCI_REVISION_T CMCCIRevisionSet::inc_revision(MCCI_VARIABLE_T variable_id)
     sqlite3_bind_int(m_update, 1, m_cache[variable_id]);
     sqlite3_bind_int(m_update, 2, variable_id);
     sqlite3_bind_int(m_update, 3, m_signature_id);
-    fprintf(stderr, "\ninc_revision updating variable #%ld's rev to %ld",
-            (long)variable_id, (long)m_cache[variable_id]);
+    //fprintf(stderr, "\ninc_revision updating variable #%ld's rev to %ld",
+    //        (long)variable_id, (long)m_cache[variable_id]);
     int result = sqlite3_step(m_update); 
     switch (result)
     {
@@ -232,7 +232,7 @@ MCCI_REVISION_T CMCCIRevisionSet::inc_revision(MCCI_VARIABLE_T variable_id)
             throw string("inc_revision somehow got a row back from an update operation");
             break;
         case SQLITE_DONE: // this is the good case
-            fprintf(stderr, "\ninc_revision OK");
+            //fprintf(stderr, "\ninc_revision OK");
             break;
         default:
             string err = string("Error in inc_revision: ") + string(sqlite3_errmsg(m_db));
