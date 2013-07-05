@@ -133,7 +133,7 @@ class RequestBank
         {
             this->m_outstanding_requests[it->first] =- 1;
             this->m_timeouts.remove(it->second, 0);
-            delete it->second;  // free the node that was removed
+            // remove op has deleted the allocated memory
         }
 
         // remove all custom structure nodes in one shot
