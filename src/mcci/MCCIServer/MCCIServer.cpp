@@ -245,7 +245,10 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
         // silently drop if we have no more requests
         if (response->requests_remaining_remote) 
         {
-            subscribe_to_host_var(requestor_id, input->timeout, input->node_address, input->variable_id);
+            subscribe_to_host_var(requestor_id,
+                                  input->timeout,
+                                  input->node_address,
+                                  input->variable_id);
             m_networking->forward_request(requestor_id, input);
         }
 
@@ -266,7 +269,9 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
         limit = response->requests_remaining_local >= quantity ?
             quantity : response->requests_remaining_remote;
 
-    // figure out where to start counting (observing desired range and order, constrained by limits)
+    // figure out where to start counting (observing desired range and order,
+    //     constrained by limits)
+    MCCI_REVISION_T maxrevision = m_settings.revisionset->get_revision(input->variable_id);
     if (0 < input->revision)
     {
         if (1 == direction)
@@ -276,7 +281,6 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
     }
     else
     {
-        MCCI_REVISION_T maxrevision = m_settings.revisionset->get_revision(input->variable_id);
         if (1 == direction)
             firstrev = maxrevision - quantity + 1;
         else
@@ -288,19 +292,36 @@ void CMCCIServer::process_forwardable_request(MCCI_CLIENT_ID_T requestor_id,
     // expand subscription range and add to various queues
     for (MCCI_REVISION_T r = firstrev; r <= lastrev; r++)
     {
-        if (is_for_me)
+        if (!is_for_me)
         {
-            // if we don't have this value, ask for it
-            do_forward |= !is_in_working_set(input->variable_id); 
-            subscribe_specific(requestor_id, input->timeout, input->variable_id, r);
-        }
-        else
-        {
+            // all remote requests are forwarded
             subscribe_specific_remote(requestor_id,
                                       input->timeout,
                                       input->node_address,
                                       input->variable_id, r);
         }
+        else
+        {
+            if (maxrevision < r)
+            {
+                // don't forward requests for future revisions
+                subscribe_specific(requestor_id, input->timeout, input->variable_id, r);
+            }
+            else if (is_in_working_set(input->variable_id)
+                     && r == get_working_variable(input->variable_id)->revision)
+            {
+                // just deliver it
+                m_networking->send_data_to_client(requestor_id,
+                                                  get_working_variable(input->variable_id));
+            }
+            else
+            {
+                // if we don't have this value, must ask for it
+                do_forward = true;
+                subscribe_specific(requestor_id, input->timeout, input->variable_id, r);
+            }
+        }
+
     }
 
 
