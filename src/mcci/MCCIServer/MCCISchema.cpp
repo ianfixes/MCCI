@@ -34,10 +34,12 @@ void CMCCISchema::load(sqlite3* schema_db)
     long var_unit;
     
     result = sqlite3_prepare_v2(schema_db,
-                                "select var_id, name, protobuf_id, unit from var where enabled <> 0",
+                                "select var_id, name, protobuf_id, unit "
+                                "from var where enabled <> 0",
                                 -1, &stmt, 0);
 
     if (result) throw string("Loading of data failed FIXME: result");
+
 
     // this is where we iterate through the schema db
     for (unsigned int i = 0; ; i++)
@@ -64,11 +66,11 @@ void CMCCISchema::load(sqlite3* schema_db)
         if (512 < datalen) throw string("Got a line that was too long");
         update_success = SHA1_Update(&context, data, datalen);
     }
-    
+
+    sqlite3_finalize(stmt);
+
     // finalize the hash value
     final_success = SHA1_Final(md, &context);    
-    
-    string ret(md, md + SHA_DIGEST_LENGTH);
 
     if (3 > init_success + update_success + final_success)
     {
@@ -101,6 +103,8 @@ void CMCCISchema::b64_encode(unsigned char* in,
     b64 = BIO_pop(bio);
     BIO_free(bio);
     BIO_free(b64);
+    bio = NULL;
+    b64 = NULL;
     
     fclose(out_file);
 }

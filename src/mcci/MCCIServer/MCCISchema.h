@@ -25,6 +25,14 @@ using namespace std;
 class CMCCISchema
 {
 
+  protected:
+
+    LinearHash<MCCI_VARIABLE_T, unsigned int> m_ordinality; // ordinality - variable ot ordinal
+    vector<MCCI_VARIABLE_T>                   m_variable;   // ordinal to variable
+    vector<string>                            m_name;       // the name of a variable, ordinal idx
+
+    string m_hashval; // the hashed contents of the schema
+    
   public:
     CMCCISchema(sqlite3* schema_db) { this->load(schema_db); }
     ~CMCCISchema() {}
@@ -47,6 +55,7 @@ class CMCCISchema
         return m_ordinality[variable_id];
     }
 
+    // the variable of the ordinal
     MCCI_VARIABLE_T variable_of_ordinal(unsigned int ord) { return m_variable.at(ord); }
     
     // lookup the name of a variable
@@ -59,14 +68,5 @@ class CMCCISchema
                            unsigned int in_len,
                            unsigned int out_len);
     
-  protected:
-
-    LinearHash<MCCI_VARIABLE_T, unsigned int> m_ordinality; // ordinality
-    vector<string> m_name;  // the name of a variable
-    vector<MCCI_VARIABLE_T> m_variable;
-
-    string m_hashval;
-    
-    sqlite3* m_db;
 
 };

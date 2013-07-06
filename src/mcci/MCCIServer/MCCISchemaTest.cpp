@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
 
     printf("\n\nB64 test: input='%s', output='%s'\n", input, output);
     assert(string("YWJjZGUA") == string(output));
+
     
     CMCCISchema* schema = NULL;
     
@@ -63,9 +64,11 @@ int main(int argc, char* argv[])
     printf("\nHash: %s", schema->get_hash().c_str());
 
     delete schema;
-    sqlite3_close(schema_db);
+    schema = NULL;
+    assert(SQLITE_OK == sqlite3_close(schema_db));
+    schema_db = NULL;
     
-    printf("\n\n");
+    printf("\n\nDONE\n\n");
 
     return 0;
 }
