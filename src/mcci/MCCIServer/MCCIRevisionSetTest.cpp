@@ -15,9 +15,9 @@ CMCCIRevisionSet* rs = NULL;
 
 void cleanup()
 {
-    sqlite3_close(rs_db);
-
     delete rs;
+    
+    sqlite3_close(rs_db);
 }
 
 
@@ -160,6 +160,7 @@ int main(int argc, char* argv[])
 
     do_test("test_incrementing", test_incrementing);
 
+    cleanup();
     cerr << "\n\n";
     return 0;
     
