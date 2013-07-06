@@ -86,18 +86,22 @@ void CMCCISchema::load(sqlite3* schema_db)
 void CMCCISchema::b64_encode(unsigned char* in,
                              char* out,
                              unsigned int in_len,
-                             unsigned int out_len) const
+                             unsigned int out_len)
 {
     FILE* out_file = fmemopen(out, out_len, "w"); // fake file in memory
 
     BIO* b64 = BIO_new(BIO_f_base64());
     BIO* bio = BIO_new_fp(out_file, BIO_NOCLOSE);
     bio = BIO_push(b64, bio);
+
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line
     BIO_write(bio, in, in_len);
     BIO_flush(bio);
-    BIO_free_all(bio);
-        
+    
+    b64 = BIO_pop(bio);
+    BIO_free(bio);
+    BIO_free(b64);
+    
     fclose(out_file);
 }
 

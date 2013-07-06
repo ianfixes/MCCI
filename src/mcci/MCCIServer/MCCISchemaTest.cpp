@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sqlite3.h>
 #include <stdio.h>
+#include <assert.h>
 
 using namespace std;
 
@@ -26,6 +27,15 @@ bool try_open_db(string file, sqlite3** db, int flags)
 
 int main(int argc, char* argv[])
 {
+
+    unsigned char input[32] = "abcde\0";
+    char output[64];
+    
+    CMCCISchema::b64_encode(input, output, 6, 64);
+
+    printf("\n\nB64 test: input='%s', output='%s'\n", input, output);
+    assert(string("YWJjZGUA") == string(output));
+    
     CMCCISchema* schema = NULL;
     
     printf("\nOpening database...");
@@ -51,6 +61,9 @@ int main(int argc, char* argv[])
     }
 
     printf("\nHash: %s", schema->get_hash().c_str());
+
+    delete schema;
+    sqlite3_close(schema_db);
     
     printf("\n\n");
 

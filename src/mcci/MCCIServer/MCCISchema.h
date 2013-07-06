@@ -54,6 +54,11 @@ class CMCCISchema
     { return m_name.at(ordinality_of_variable(variable_id)); }
 
                             
+    static void b64_encode(unsigned char* in,
+                           char* out,
+                           unsigned int in_len,
+                           unsigned int out_len);
+    
   protected:
 
     LinearHash<MCCI_VARIABLE_T, unsigned int> m_ordinality; // ordinality
@@ -64,9 +69,4 @@ class CMCCISchema
     
     sqlite3* m_db;
 
-    void b64_encode(unsigned char* in,
-                    char* out,
-                    unsigned int in_len,
-                    unsigned int out_len) const;
-    
 };
