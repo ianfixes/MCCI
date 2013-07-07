@@ -20,22 +20,44 @@ sqlite3* rs_db     = NULL;
 CMCCISchema* schema = NULL;
 CMCCIRevisionSet* rs = NULL;
 
-CMCCIServer* my_server;
+CMCCIServer* my_server = NULL;
 
 
 void cleanup()
 {
-    sqlite3_close(schema_db);
-    sqlite3_close(rs_db);
-
     delete my_server;
     delete schema;
     delete rs;
+    
+    if (SQLITE_OK != sqlite3_close(rs_db))
+    {
+        cerr << "\nCouldn't close RevisionSet DB";
+        throw string("couldn't close RevisionSet DB");
+    }
+
+
+    if (SQLITE_OK != sqlite3_close(schema_db))
+    {
+        cerr << "\nCouldn't close schema DB";
+        throw string("couldn't close schema DB");
+    }
+
+    schema_db = NULL;
+    rs_db = NULL;
+    my_server = NULL;
+    schema = NULL;
+    rs = NULL;
 }
 
 
 bool try_open_db(bool debug, string file, sqlite3** db, int flags)
 {
+    if (*db)
+    {
+        cerr << "\nDB already open: '" << file << "'!!";
+        throw string(string("DB already open: ") + file);
+    }
+
     int result;
     if (debug) cerr << "\nOpening sqlite3 db (" <<  file.c_str() << ")...";
     result = sqlite3_open_v2(file.c_str(), db, flags, NULL);
@@ -44,7 +66,7 @@ bool try_open_db(bool debug, string file, sqlite3** db, int flags)
         cerr << "Couldn't open '" << file << "': '" << sqlite3_errmsg(*db) << "'";
         return false;
     }
-    
+
     if (debug) cerr << "OK";
     return true;
 }
@@ -58,17 +80,21 @@ int init(bool debug)
         cleanup();
         return 1;
     }
+
+    
     if (!try_open_db(debug, "../../../revisions.sqlite3", &rs_db, SQLITE_OPEN_READWRITE))
     {
         cleanup();
         return 1;
     }
 
+
     try
     {
         if (debug) cerr << "\nCreating schema object...";
         schema = new CMCCISchema(schema_db);
         if (debug) cerr << "OK (" << schema->get_hash() << ")";
+
 
         if (debug) cerr << "\nCreating revisionset object...";
         rs     = new CMCCIRevisionSet(rs_db, schema->get_cardinality(), schema->get_hash());
@@ -77,8 +103,8 @@ int init(bool debug)
             cerr << "OK";
             cerr << "\n -- " << *rs;
         }
-        
-            
+
+
         // build settings struct
         SMCCIServerSettings settings;
         
@@ -107,20 +133,21 @@ int init(bool debug)
         if (debug) cerr << "OK";
         if (debug) cerr << "\n" << my_server->get_settings();
 
+        /*
         if (debug) cerr << "\nProducing values";
+        SMCCIAcceptancePacket a;
         for (int i = 0; i < 60; ++i)
         {
             SMCCIProductionPacket p;
             p.variable_id = 2;
-            p.response_id = 0;
-
-            SMCCIAcceptancePacket a;
+            p.response_id = i + 100;
             
             my_server->process_production(36, &p, &a);
 
             if (debug) cerr << ".";
         }
-        if (debug) cerr << "OK";
+        if (debug) cerr << "OK (" << a.revision << ")";
+        */
 
         
     }
@@ -140,6 +167,7 @@ int init(bool debug)
         return 1;
     }
 
+    if (debug) cerr << "\nInit complete";
 
     return 0;
 }
@@ -156,6 +184,8 @@ int do_test(string name, int (*test_fn)(void))
         return init_ret;
     }
 
+    assert(0 == my_server->request_count());
+    
     cerr << "\n\n---------------- LET THE TESTING BEGIN: " << name << "\n";
     try
     {
@@ -326,9 +356,72 @@ int test_rb_varrev()
 
 
 
+// request is a request packet, impacts are how many req slots we expect the packet to occupy
+int test_sndrecv()
+{
+    SMCCIServerSettings settings = my_server->get_settings();
+    fake_time.set_now(12344);
+
+    cerr << "\npreloading a data packet";
+    SMCCIProductionPacket production;
+    SMCCIAcceptancePacket acceptance;
+
+    production.variable_id = 1;
+    production.payload = 0; // doesn't matter what this is for now
+    production.response_id = 77;
+
+    // put in 2 so we're guaranteed to have "current revision - 1"
+    my_server->process_production(25, &production, &acceptance);
+    int first_rev = acceptance.revision;
+    my_server->process_production(25, &production, &acceptance);
+
+    int current_rev = acceptance.revision;
+    cerr << "\nour preloaded data packet is revision " << current_rev;
+
+    cerr << "\nputting in a request for packets "
+         << current_rev - 1 << " to " << current_rev + 1;
+    
+    SMCCIRequestPacket request;
+    request.node_address = 0;
+    request.variable_id = 1;
+    request.revision = current_rev - 1;
+    request.quantity = 3;
+    request.timeout = fake_time.now() + 1;
+    
+    SMCCIResponsePacket response;
+    response.accepted = false;
+    response.requests_remaining_local = 0;
+    response.requests_remaining_remote = 0;
+    
+    cerr << "\nChecking request acceptance: ";
+    my_server->process_request(54, &request, &response);
+    cerr << "\nClient 54 got response: " << response;
+    assert(response.accepted);
+    assert(settings.max_local_requests - 2 == response.requests_remaining_local);
+
+    cerr << "\nPublishing another packet to trigger delivery";
+    my_server->process_production(25, &production, &acceptance);
+
+    assert(1 == my_server->request_count());
+
+    SMCCIDataPacket data;
+    data.node_address = 5;
+    data.variable_id = 1;
+    data.revision = first_rev;
+    cerr << "\nRedelivering an old packet: " << data;
+
+    my_server->process_data(37, &data);
+
+    assert (0 == my_server->request_count());
+    
+    return 0;
+}
+
+
 
 int main(int argc, char* argv[])
 {
+
     cerr << "\n================= Testing init/cleanup routine =================";
     cerr << "==================================================================";
     if (int init_ret = init(true))
@@ -336,6 +429,7 @@ int main(int argc, char* argv[])
         cerr << "\ninit() got code " << init_ret << "; exiting\n\n";
         return init_ret;
     }
+    cerr << "\nAbout to run cleanup()";
     cleanup();
 
     cerr << "\nTest wrapper checks out.";
@@ -348,6 +442,8 @@ int main(int argc, char* argv[])
     do_test("test_rb_hostvar", test_rb_hostvar);
     do_test("test_rb_remote", test_rb_remote);
     do_test("test_rb_varrev", test_rb_varrev);
+    
+    do_test("test_sndrcv", test_sndrecv);
 
     cerr << "\n\n";
     return 0;
